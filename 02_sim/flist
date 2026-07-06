@@ -1,0 +1,18 @@
+-sv
+-timescale 1ns/100ps
+# TESTBENCH FILES
+./../01_tb/mac_functional_tb.sv
+#./../01_tb/mac_tb.sv
+#./../01_tb/mul_tb.sv
+# SOURCE CODE FILES
+./../00_src/cla_carry_unit_6bit.sv
+./../00_src/cla_adder_20bit.sv
+./../00_src/compressed_adder_4to2.sv
+./../00_src/mac.sv
+./../00_src/booth_encoder.sv
+./../00_src/cla_adder_4bit.sv
+./../00_src/cla_adder_24bit.sv
+./../00_src/cla_carry_unit_5bit.sv
+./../00_src/wallace_partial.sv
+./../00_src/cla_adder.sv
+./../00_src/mul.sv
