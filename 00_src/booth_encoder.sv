@@ -7,7 +7,7 @@
 // Updated date    : 26/06/2026
 //============================================================================================================
 module booth_encoder #(
-	parameter WIDTH_OPA = 12,
+	parameter WIDTH_OPA = 8,
 	parameter WIDTH_OPB = 8
 )(
 	input	 wire [WIDTH_OPA-1:0]                  opa_i,

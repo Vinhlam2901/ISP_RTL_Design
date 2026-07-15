@@ -1,112 +1,102 @@
 //===========================================================================================================
 // Project         : Multiplier Acumulator
 // Module          : Multiplier Acumulator
-// File            : mac.sv
+// File            : cla_adder_32bit.sv
 // Author          : Chau Tran Vinh Lam - vinhlamchautran572@gmail.com
-// Create date     : 04/07/2026
-// Updated date    : 06/07/2026
-//=============================================================================================================
+// Create date     : 07/07/2026
+// Updated date    : 15/07/2026
+//============================================================================================================
+import package_param::*;
 module mac #(
-	parameter WIDTH_MAC = 20,
-	parameter WIDTH_OPA = 12,
-	parameter WIDTH_OPB = 8,
-	parameter GUARD_BIT = 4  						
-	/* imagine we have 3x3 window for mac, so we need 9 times to acc 
-	-> the guard bit of acc_reg is log2(9) = 4 bit */
+  parameter WIDTH_MAC = 16,
+  parameter WIDTH_OPA = 8,
+  parameter WIDTH_OPB = 8,
+  parameter GUARD_BIT = 4             
 )(
-  input  wire                             i_clk,
-  input  wire                             ni_rst,
-  input  wire                             mac_en_i,
-  input  wire                             acc_clr_i,
-  input  wire [WIDTH_OPA-1:0]             opa_i,
-	input  wire [WIDTH_OPB-1:0]             opb_i,
-  output reg                              mac_ready_o,
-  output reg                              mac_valid_o,
-	output reg  [(WIDTH_MAC+GUARD_BIT)-1:0] mac_out
+  input  logic                             i_clk,
+  input  logic                             ni_rst,
+  input  logic                             mac_en_i,
+  input  logic [8:0][WIDTH_OPA-1:0]        opa_i,
+  input  logic [8:0][WIDTH_OPB-1:0]        opb_i,
+  output logic                             mac_valid_o,
+  output logic [(WIDTH_MAC+GUARD_BIT)-1:0] mac_out
 );
-//========================DECLEARATION===============================================================================
-  typedef enum {IDLE, ACC, STOP} state_type;
-  state_type state, next_state;
-	reg                             cout_acc;
-	reg [WIDTH_MAC-1:0]             mul_result;
-	reg [(WIDTH_MAC+GUARD_BIT)-1:0] op_mul;
-	reg [(WIDTH_MAC+GUARD_BIT)-1:0] op_acc;
-	reg [(WIDTH_MAC+GUARD_BIT)-1:0] acc_out;
-//========================INSTANTIAION===============================================================================
-	mul multiplier (
-		.opa_i(opa_i),
-		.opb_i(opb_i),
-		.mul_o(mul_result)
-	);
-	assign op_mul = {{4{mul_result[19]}}, mul_result};
-	assign op_acc = acc_clr_i ? 24'd0 : mac_out;
-	cla_adder_24bit adder (
-		.a_i     (op_mul),
-		.b_i     (op_acc),
-		.cin_i   (1'b0),
-		.cout_o  (cout_acc),
-		.result_o(acc_out)
-	);
-//===========================================================================
-// KHỐI 1: STATE REGISTER (Sequential)
-//===========================================================================
-  always_ff @(posedge i_clk or negedge ni_rst) begin
-    if (!ni_rst)
-      state <= IDLE;
-    else
-      state <= next_state;
+//======================== DECLARATION ========================
+  package_param::mul_add_stage    mul_add_reg,    mul_add_next;     
+  package_param::add_add_stage    add_add_reg,    add_add_next;     
+  package_param::add_accum_stage  add_accum_reg,  add_accum_next;
+  
+  logic [2:0]                            valid_shift_reg;
+  logic [8:0][WIDTH_MAC-1:0]             mul_result;
+  logic [8:0][(WIDTH_MAC+GUARD_BIT)-1:0] op_mul;
+  logic [7:0][(WIDTH_MAC+GUARD_BIT)-1:0] add_out;
+//======================== PIPELINE CONTROL ========================
+  always_ff @(posedge i_clk or negedge ni_rst) begin : valid_tracking_register
+    if (~ni_rst) begin
+      valid_shift_reg <= 3'b0;
+    end else begin
+      valid_shift_reg <= {valid_shift_reg[1:0], mac_en_i};
+    end
   end
-//===========================================================================
-// KHỐI 2: NEXT STATE LOGIC (Combinational)
-//===========================================================================
-  always_comb begin
-    next_state = state;
-    case (state)
-      IDLE: begin
-				if (mac_en_i) begin
-					next_state = ACC;
-				end
-      end
-      ACC: begin
-				next_state = STOP;
-      end 
-      STOP: begin
-				next_state = IDLE;
-      end
-      default: next_state = IDLE;
-    endcase
+  assign mac_valid_o = valid_shift_reg[2];
+//======================== STAGE 1: MULTIPLIER ========================
+  genvar i;
+  for (i = 0; i < 9 ; i++) begin: nine_mul
+    mul multiplier (
+      .opa_i(opa_i[i]),
+      .opb_i(opb_i[i]),
+      .mul_o(mul_result[i])
+    );
+    assign op_mul[i] = {{GUARD_BIT{mul_result[i][WIDTH_MAC-1]}}, mul_result[i]};
   end
-//===========================================================================
-// KHỐI 3: DATAPATH LOGIC (Sequential)
-//===========================================================================
-always_ff @(posedge i_clk or negedge ni_rst) begin
-	if (~ni_rst) begin
-		mac_out     <= '0;
-		mac_ready_o <= 1'b0;
-		mac_valid_o <= 1'b0;
-	end else begin
-		case (state)
-			IDLE: begin
-				mac_ready_o <= 1'b1;
-				mac_valid_o <= 1'b0;
-				if (mac_en_i) begin
-					mac_ready_o <= 1'b0;
-				end
-			end
-			ACC: begin
-				mac_out     <= acc_out; 
-				mac_ready_o <= 1'b0;
-				mac_valid_o <= 1'b1;
-			end
-			STOP: begin
-				mac_ready_o <= 1'b0;
-				mac_valid_o <= 1'b0;
-			end
-			default: begin
-				mac_ready_o <= 1'b0;
-				mac_valid_o <= 1'b0;
-			end
-		endcase
-	end
-end
+  
+  always_comb begin: mul_stage
+    mul_add_next.op_mul = op_mul;
+  end
+  
+  always_ff @(posedge i_clk or negedge ni_rst) begin : mul_add_register
+    if(~ni_rst) begin
+      mul_add_reg.op_mul <= '0;
+    // Tầng 1: Sử dụng tín hiệu Enable ngõ vào làm cờ Clock Enable
+    end else if (mac_en_i) begin
+      mul_add_reg.op_mul <= mul_add_next.op_mul;
+    end
+  end
+
+//======================== STAGE 2: ADDER LEVEL 1 ========================
+  cla_adder_20bit adder0 (.a_i(mul_add_reg.op_mul[0]), .b_i(mul_add_reg.op_mul[1]), .cin_i(1'b0), .result_o(add_out[0]), .cout_o());
+  cla_adder_20bit adder1 (.a_i(mul_add_reg.op_mul[2]), .b_i(mul_add_reg.op_mul[3]), .cin_i(1'b0), .result_o(add_out[1]), .cout_o());
+  cla_adder_20bit adder2 (.a_i(mul_add_reg.op_mul[4]), .b_i(mul_add_reg.op_mul[5]), .cin_i(1'b0), .result_o(add_out[2]), .cout_o());
+  cla_adder_20bit adder3 (.a_i(mul_add_reg.op_mul[6]), .b_i(mul_add_reg.op_mul[7]), .cin_i(1'b0), .result_o(add_out[3]), .cout_o());
+  
+  always_comb begin: add_stage
+    add_add_next.add_out       = add_out[3:0];
+    add_add_next.op_mul8_delay = mul_add_reg.op_mul[8];
+  end
+  
+  always_ff @(posedge i_clk or negedge ni_rst) begin : add_add_register
+    if(~ni_rst) begin
+      add_add_reg <= '0;
+    // Tầng 2: Sử dụng cờ Valid của tầng trước làm Clock Enable
+    end else if (valid_shift_reg[0]) begin
+      add_add_reg <= add_add_next;
+    end
+  end
+
+//======================== STAGE 3: ACCUMULATOR ========================
+  cla_adder_20bit adder4 (.a_i(add_add_reg.add_out[0]), .b_i(add_add_reg.add_out[1]), .cin_i(1'b0), .result_o(add_out[4]), .cout_o());
+  cla_adder_20bit adder5 (.a_i(add_add_reg.add_out[2]), .b_i(add_add_reg.add_out[3]), .cin_i(1'b0), .result_o(add_out[5]), .cout_o());
+  cla_adder_20bit adder6 (.a_i(add_out[4]), .b_i(add_out[5]), .cin_i(1'b0), .result_o(add_out[6]), .cout_o());
+  cla_adder_20bit adder7 (.a_i(add_add_reg.op_mul8_delay), .b_i(add_out[6]), .cin_i(1'b0), .result_o(add_out[7]), .cout_o());
+  always_comb begin: add_accum_stage
+    add_accum_next.final_mac = add_out[7];
+  end
+  always_ff @(posedge i_clk or negedge ni_rst) begin : add_accum_register
+    if(~ni_rst) begin
+      add_accum_reg <= '0;
+    end else if (valid_shift_reg[1]) begin
+      add_accum_reg <= add_accum_next;
+    end
+  end  
+  assign mac_out = add_accum_reg.final_mac;
 endmodule

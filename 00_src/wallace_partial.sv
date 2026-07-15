@@ -7,7 +7,7 @@
 // Updated date    : 01/07/2026
 //============================================================================================================
 module wallace_partial #(
-	parameter int WIDTH_RESULT = 20,
+	parameter int WIDTH_RESULT = 16,
 	parameter int PARTIAL_NUM = 4
 )(
 	input  logic [PARTIAL_NUM-1:0][WIDTH_RESULT-1:0] pal_i,
