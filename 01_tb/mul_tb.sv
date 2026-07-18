@@ -1,8 +1,8 @@
 module mul_tb;
   // Parameters
-  localparam int WIDTH_OPA = 12;
-  localparam int WIDTH_OPB = 8;
-  localparam int WIDTH_MAC = 20;
+  localparam int WIDTH_OPA = 8;
+  localparam int WIDTH_OPB = 4;
+  localparam int WIDTH_MAC = 12;
   // Signals
   logic [WIDTH_OPA-1:0] opa_i;
   logic [WIDTH_OPB-1:0] opb_i;
@@ -35,30 +35,14 @@ module mul_tb;
     opb_i = 8'd2;
     #10;
     check_result(opa_i, opb_i, mul_o);
-    // ---------------------------------------------------------
-    // Test Case 2: Nhân số âm với số dương (A âm, B dương)
-    // ---------------------------------------------------------
-    opa_i = -12'd25; // 12-bit số âm
-    opb_i = 8'd4;
-    #10;
-    check_result(opa_i, opb_i, mul_o);
-    // ---------------------------------------------------------
-    // Test Case 3: Nhân số dương với số âm (A dương, B âm)
-    // ---------------------------------------------------------
     opa_i = 12'd100; 
-    opb_i = -8'd5;
+    opb_i = 8'd5;
     #10;
     check_result(opa_i, opb_i, mul_o);
-    // ---------------------------------------------------------
-    // Test Case 4: Nhân hai số âm (Kết quả phải dương)
-    // ---------------------------------------------------------
-    opa_i = -12'd50; 
-    opb_i = -8'd12;
+    opa_i = 12'd50; 
+    opb_i = 8'd12;
     #10;
     check_result(opa_i, opb_i, mul_o);
-    // ---------------------------------------------------------
-    // Test Case 5: Biên giới trị số (Maximum Positive/Negative)
-    // ---------------------------------------------------------
     opa_i = 12'h7FF; // Max dương của 12-bit (+2047)
     opb_i = 8'h7F;   // Max dương của 8-bit (+127)
     #10;
@@ -67,9 +51,6 @@ module mul_tb;
     opb_i = 8'h80;   // Max âm của 8-bit (-128)
     #10;
     check_result(opa_i, opb_i, mul_o);
-    // ---------------------------------------------------------
-    // Test Case 6: Random Test Vector (10 trường hợp)
-    // ---------------------------------------------------------
     $display("--- BẮT ĐẦU CHẠY RANDOM VECTORS ---");
     for (int i = 0; i < 10; i++) begin
       opa_i = $random;

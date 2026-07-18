@@ -8,18 +8,19 @@
 //============================================================================================================
 module booth_encoder #(
 	parameter WIDTH_OPA = 8,
-	parameter WIDTH_OPB = 8
+	parameter WIDTH_OPB = 4
 )(
-	input	 wire [WIDTH_OPA-1:0]                  opa_i,
-	input	 wire [WIDTH_OPB-1:0]                  opb_i,
-	output reg  [(WIDTH_OPB/2)-1:0]              neg_o,
-	output reg  [(WIDTH_OPB/2)-1:0][WIDTH_OPA:0] pp_o   
+	input	 logic [WIDTH_OPA-1:0]                    opa_i,	// unsign 
+	input	 logic [WIDTH_OPB-1:0]                    opb_i,
+	output logic [(WIDTH_OPB/2)-1:0]                neg_o,
+	output logic [(WIDTH_OPB/2)-1:0][WIDTH_OPA+1:0] pp_o   
 );
-	//====================================DECLARATION==============================================================
-	reg  [(WIDTH_OPB/2)-1:0] single_o;
-	reg  [(WIDTH_OPB/2)-1:0] double_o;
-	wire [WIDTH_OPB:0]       sel_lines;
-	wire [WIDTH_OPA:0]       single_ext, double_ext;
+//====================================DECLARATION==============================================================
+	logic [(WIDTH_OPB/2)-1:0] single_o;
+	logic [(WIDTH_OPB/2)-1:0] double_o;
+	logic [WIDTH_OPB:0]       sel_lines;
+	logic [WIDTH_OPA+1:0]     single_ext;
+	logic [WIDTH_OPA+1:0]     double_ext;
 //====================================CODE=====================================================================
 	assign sel_lines = {opb_i, 1'b0};
 	always_comb begin : booth_encoder
@@ -29,11 +30,11 @@ module booth_encoder #(
 			neg_o[i/2]    = ({sel_lines[i+2], sel_lines[i+1], sel_lines[i]} == 3'b111) ? 1'b0 : sel_lines[i+2];
 		end
 	end
-	assign single_ext = {opa_i[WIDTH_OPA-1], opa_i}; 
+	assign single_ext = {1'b0, opa_i}; 
   assign double_ext = {opa_i, 1'b0};
 	always_comb begin : booth_selector
 		for (int i = 0; i < WIDTH_OPB/2; i += 1 ) begin
-			pp_o[i] = ((single_ext & {(WIDTH_OPA+1){single_o[i]}}) | (double_ext & {(WIDTH_OPA+1){double_o[i]}})) ^ {(WIDTH_OPA+1){neg_o[i]}};
+			pp_o[i] = ((single_ext & {(WIDTH_OPA+2){single_o[i]}}) | (double_ext & {(WIDTH_OPA+2){double_o[i]}})) ^ {(WIDTH_OPA+2){neg_o[i]}};
 		end
 	end
 endmodule

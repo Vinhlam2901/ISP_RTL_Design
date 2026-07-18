@@ -8,8 +8,8 @@
 //============================================================================================================
 module mul #(
 	parameter WIDTH_OPA = 8,
-	parameter WIDTH_OPB = 8,
-	parameter WIDTH_MAC = 16
+	parameter WIDTH_OPB = 4,
+	parameter WIDTH_MAC = 12
 )(
 	input  logic [WIDTH_OPA-1:0] opa_i,
 	input  logic [WIDTH_OPB-1:0] opb_i,
@@ -17,7 +17,7 @@ module mul #(
 );
 //===========================DECLARATION=======================================
 	logic                                    cout_o;
-	logic [(WIDTH_OPB/2)-1:0][WIDTH_OPA:0]   pp_o;
+	logic [(WIDTH_OPB/2)-1:0][WIDTH_OPA+1:0] pp_o;
 	logic [(WIDTH_OPB/2)-1:0][WIDTH_MAC-1:0] concat_pp;
 	logic [(WIDTH_OPB/2)-1:0]                neg_o;
 	logic [WIDTH_MAC-1:0]                    sum_partial;
@@ -32,27 +32,38 @@ module mul #(
 		.neg_o(neg_o),
 		.pp_o(pp_o)
 	);
-	//---------------CONCATENATION_PARTIAL-------------------------
+  	//---------------CONCATENATION_PARTIAL-------------------------
 	always_comb begin : concat_partial
-		concat_pp[0] = {{(WIDTH_MAC-WIDTH_OPA-1){pp_o[0][WIDTH_OPA]}}, pp_o[0]};
-		concat_pp[1] = {{(WIDTH_MAC-WIDTH_OPA-3){pp_o[1][WIDTH_OPA]}}, pp_o[1], 2'b0};
-		concat_pp[2] = {{(WIDTH_MAC-WIDTH_OPA-5){pp_o[2][WIDTH_OPA]}}, pp_o[2], 4'b0};
-		concat_pp[3] = {{(WIDTH_MAC-WIDTH_OPA-7){pp_o[3][WIDTH_OPA]}}, pp_o[3], 6'b0};
+		concat_pp[0] = {{(WIDTH_MAC-(WIDTH_OPA+2)){pp_o[0][WIDTH_OPA+1]}}, pp_o[0]};
+		concat_pp[1] = {pp_o[1], 2'b0};
 	end
-	wallace_partial #(
-		.WIDTH_RESULT(WIDTH_MAC),
-		.PARTIAL_NUM(WIDTH_OPB/2)
-	) wallace (
-		.pal_i(concat_pp),
-		.cin_i(neg_o),
-		.sum_o(sum_partial),
-		.cout_o(carry_partial)
-	);
-	cla_adder_16bit cla (
-		.a_i(sum_partial),
-		.b_i({carry_partial[WIDTH_MAC-2:0], 1'b0}),
-		.cin_i(1'b0),
-		.cout_o(cout_o),
-		.result_o(mul_o)
-	);
+	always_comb begin : carry_save_stage
+    //-------------- BIT 0: HALF_ADDER -------------------
+    sum_partial[0]   = concat_pp[0][0] ^ neg_o[0];
+    carry_partial[0] = concat_pp[0][0] & neg_o[0];
+    //-------------- BIT 1: STRAIGHT FORWARD -------------
+    // Vì concat_pp[1][1:0] luôn là 2'b00 do dịch trái 2 bit
+    sum_partial[1]   = concat_pp[0][1];
+    carry_partial[1] = 1'b0;
+    //-------------- BIT 2: FULL_ADDER -------------------
+    // Cộng pp0[2], pp1[2], và neg_o[1]
+    sum_partial[2]   = concat_pp[0][2] ^ concat_pp[1][2] ^ neg_o[1];
+    carry_partial[2] = (concat_pp[0][2] & concat_pp[1][2]) | 
+                       (concat_pp[0][2] & neg_o[1])        | 
+                       (concat_pp[1][2] & neg_o[1]);
+    //-------------- BIT 3: HALF_ADDER -------------------
+    sum_partial[3]   = concat_pp[0][3] ^ concat_pp[1][3];
+    carry_partial[3] = concat_pp[0][3] & concat_pp[1][3];
+    //-------------- BIT 11:4 : ARRAY OF HALF_ADDERS -----
+    // Viết gọn bằng toán tử bitwise cho 8 bit cùng lúc!
+    sum_partial[11:4]   = concat_pp[0][11:4] ^ concat_pp[1][11:4];
+    carry_partial[11:4] = concat_pp[0][11:4] & concat_pp[1][11:4];
+  end
+  cla_adder_12bit final_cla (
+    .a_i(sum_partial),
+    .b_i({carry_partial[WIDTH_MAC-2:0], 1'b0}), 
+    .cin_i(1'b0),
+    .cout_o(cout_o),
+    .result_o(mul_o)
+  );
 endmodule

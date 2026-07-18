@@ -1,17 +1,17 @@
 //===========================================================================================================
-// Project         : Multiplier Acumulator
+// Project         : Convolution with 3 kernels Sobel, Blur and Sharpening
 // Module          : Multiplier Acumulator
 // File            : cla_adder_32bit.sv
 // Author          : Chau Tran Vinh Lam - vinhlamchautran572@gmail.com
 // Create date     : 07/07/2026
-// Updated date    : 15/07/2026
+// Updated date    : 16/07/2026
 //============================================================================================================
 import package_param::*;
 module mac #(
-  parameter WIDTH_MAC = 16,
-  parameter WIDTH_OPA = 8,
-  parameter WIDTH_OPB = 8,
-  parameter GUARD_BIT = 4             
+  parameter WIDTH_MAC = 12,
+  parameter WIDTH_OPA = 8,      // 8bit for 1 pixel
+  parameter WIDTH_OPB = 4,      // 4bit for kernel's coefficiency from [-8:7]
+  parameter GUARD_BIT = 3       // guard bit = log2(WIDTH_MAC)             
 )(
   input  logic                             i_clk,
   input  logic                             ni_rst,
@@ -21,16 +21,15 @@ module mac #(
   output logic                             mac_valid_o,
   output logic [(WIDTH_MAC+GUARD_BIT)-1:0] mac_out
 );
-//======================== DECLARATION ========================
+//======================== DECLARATION ========================================================================================
   package_param::mul_add_stage    mul_add_reg,    mul_add_next;     
   package_param::add_add_stage    add_add_reg,    add_add_next;     
   package_param::add_accum_stage  add_accum_reg,  add_accum_next;
-  
   logic [2:0]                            valid_shift_reg;
   logic [8:0][WIDTH_MAC-1:0]             mul_result;
   logic [8:0][(WIDTH_MAC+GUARD_BIT)-1:0] op_mul;
   logic [7:0][(WIDTH_MAC+GUARD_BIT)-1:0] add_out;
-//======================== PIPELINE CONTROL ========================
+//======================== PIPELINE CONTROL ====================================================================================
   always_ff @(posedge i_clk or negedge ni_rst) begin : valid_tracking_register
     if (~ni_rst) begin
       valid_shift_reg <= 3'b0;
@@ -39,7 +38,7 @@ module mac #(
     end
   end
   assign mac_valid_o = valid_shift_reg[2];
-//======================== STAGE 1: MULTIPLIER ========================
+//======================== STAGE 1: MULTIPLIER ==================================================================================
   genvar i;
   for (i = 0; i < 9 ; i++) begin: nine_mul
     mul multiplier (
@@ -49,7 +48,6 @@ module mac #(
     );
     assign op_mul[i] = {{GUARD_BIT{mul_result[i][WIDTH_MAC-1]}}, mul_result[i]};
   end
-  
   always_comb begin: mul_stage
     mul_add_next.op_mul = op_mul;
   end
@@ -63,12 +61,11 @@ module mac #(
     end
   end
 
-//======================== STAGE 2: ADDER LEVEL 1 ========================
-  cla_adder_20bit adder0 (.a_i(mul_add_reg.op_mul[0]), .b_i(mul_add_reg.op_mul[1]), .cin_i(1'b0), .result_o(add_out[0]), .cout_o());
-  cla_adder_20bit adder1 (.a_i(mul_add_reg.op_mul[2]), .b_i(mul_add_reg.op_mul[3]), .cin_i(1'b0), .result_o(add_out[1]), .cout_o());
-  cla_adder_20bit adder2 (.a_i(mul_add_reg.op_mul[4]), .b_i(mul_add_reg.op_mul[5]), .cin_i(1'b0), .result_o(add_out[2]), .cout_o());
-  cla_adder_20bit adder3 (.a_i(mul_add_reg.op_mul[6]), .b_i(mul_add_reg.op_mul[7]), .cin_i(1'b0), .result_o(add_out[3]), .cout_o());
-  
+//======================== STAGE 2: ADDER LEVEL 1 ========================================================================================
+  cla_adder_20bit adder0 (.a_i(mul_add_reg.op_mul[0]),.b_i(mul_add_reg.op_mul[1]),.cin_i(1'b0),.result_o(add_out[0]),.cout_o());
+  cla_adder_20bit adder1 (.a_i(mul_add_reg.op_mul[2]),.b_i(mul_add_reg.op_mul[3]),.cin_i(1'b0),.result_o(add_out[1]),.cout_o());
+  cla_adder_20bit adder2 (.a_i(mul_add_reg.op_mul[4]),.b_i(mul_add_reg.op_mul[5]),.cin_i(1'b0),.result_o(add_out[2]),.cout_o());
+  cla_adder_20bit adder3 (.a_i(mul_add_reg.op_mul[6]),.b_i(mul_add_reg.op_mul[7]),.cin_i(1'b0),.result_o(add_out[3]),.cout_o());
   always_comb begin: add_stage
     add_add_next.add_out       = add_out[3:0];
     add_add_next.op_mul8_delay = mul_add_reg.op_mul[8];
