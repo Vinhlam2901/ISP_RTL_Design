@@ -3,10 +3,8 @@ module mac_functional_tb();
   logic        clk;
   logic        rst_n;
   logic        mac_en;
-  logic        acc_clr;
   logic [11:0] opa;
   logic [7:0]  opb;
-  logic        mac_ready;
   logic        mac_valid;
   logic [23:0] mac_out;
   // Khởi tạo DUT (Device Under Test)
@@ -14,10 +12,8 @@ module mac_functional_tb();
     .i_clk      (clk),
     .ni_rst     (rst_n),
     .mac_en_i   (mac_en),
-    .acc_clr_i  (acc_clr),
     .opa_i      (opa),
     .opb_i      (opb),
-    .mac_ready_o(mac_ready),
     .mac_valid_o(mac_valid),
     .mac_out    (mac_out)
   );
@@ -36,7 +32,6 @@ module mac_functional_tb();
     clk     = 0;
     rst_n   = 0;
     mac_en  = 0;
-    acc_clr = 0;
     opa     = 0;
     opb     = 0;
     // 2. Nhả Reset
@@ -44,28 +39,17 @@ module mac_functional_tb();
     rst_n = 1;
     #10;
     $display("=== BAT DAU FUNCTIONAL TEST: TINH TONG 3 CAP DU LIEU ===");
-
     // 3. Vòng lặp nạp dữ liệu
     for (int i = 0; i < 3; i++) begin
-      // Đợi MAC rảnh
-      wait(mac_ready == 1'b1); 
-      
       // Nạp dữ liệu mới tại sườn xuống (để setup time an toàn cho sườn lên tiếp theo)
       @(negedge clk); 
       opa = test_pixels[i];
       opb = test_weights[i];
       mac_en = 1'b1;
-      
-      // Lần đầu tiên phải xóa thanh ghi
-      if (i == 0) acc_clr = 1'b1;
-      else        acc_clr = 1'b0;
-
       $display("Nap du lieu %0d: A = %0d, B = %0d", i+1, $signed(opa), $signed(opb));
-
       // Kéo enable xuống sau 1 chu kỳ, nhường chỗ cho FSM xử lý
       @(negedge clk);
       mac_en  = 1'b0; 
-      acc_clr = 1'b0;
       
       // Chờ cờ valid bật lên để chốt kết quả
       wait(mac_valid == 1'b1);

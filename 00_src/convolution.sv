@@ -19,31 +19,32 @@ module convolution #(
 	input  logic      	                           i_ready,
   input  logic [WIDTH_PIXEL:0][WIDTH_KERNEL-1:0] mac_kernel,
 	input  logic [WIDTH_PIXEL-1:0]                 i_pix,
-	output logic [WIDTH_PIXEL-1:0]                 o_pix_conv
+	output logic [WIDTH_PIXEL-1:0]                 o_pix_conv,
+	output                                         o_valid
 	);
 	//==============DECLARATION=======================================================================================
-  logic                             mac_enb;
-  logic                             i_valid_window;
-	logic                             i_left_align;
-	logic                             i_right_align;
-	logic                             i_top_align;
-	logic                             i_bot_align;
-	logic                             window_err;
-	logic                             lb1_full;
-	logic                             lb2_full;
-	logic                             rd_en1;
-	logic                             rd_en2;
-  logic                             mac_valid;
-	logic [WIDTH_PIXEL:0]             x_cnt;	
-  logic [WIDTH_PIXEL:0]             y_cnt;
-	logic [WIDTH_PIXEL:0]             fill_cnt;   
-	logic [WIDTH_PIXEL:0][7:0]        mac_pixels;
-	logic [WIDTH_PIXEL-1:0]           window_00, window_01, window_02;	// row 0
-  logic [WIDTH_PIXEL-1:0]           window_10, window_11, window_12; 	// row 1
-  logic [WIDTH_PIXEL-1:0]           window_20, window_21, window_22;	// row 2
-	logic [(WIDTH_MAC+GUARD_BIT)-1:0] mac_result;
-  logic [(WIDTH_MAC+GUARD_BIT)-1:0] mac_abs;  
-  logic [(WIDTH_MAC+GUARD_BIT)-1:0] mac_scaled;
+  logic                                    mac_enb;
+  logic                                    i_valid_window;
+	logic                                    i_left_align;
+	logic                                    i_right_align;
+	logic                                    i_top_align;
+	logic                                    i_bot_align;
+	logic                                    window_err;
+	logic                                    lb1_full;
+	logic                                    lb2_full;
+	logic                                    rd_en1;
+	logic                                    rd_en2;
+  logic                                    mac_valid;
+	logic [WIDTH_PIXEL:0]                    x_cnt;	
+  logic [WIDTH_PIXEL:0]                    y_cnt;
+	logic [WIDTH_PIXEL:0]                    fill_cnt;   
+	logic [WIDTH_PIXEL:0][7:0]               mac_pixels;
+	logic [WIDTH_PIXEL-1:0]                  window_00, window_01, window_02;	// row 0
+  logic [WIDTH_PIXEL-1:0]                  window_10, window_11, window_12; 	// row 1
+  logic [WIDTH_PIXEL-1:0]                  window_20, window_21, window_22;	// row 2
+	logic [(WIDTH_MAC+GUARD_BIT)-1:0]        mac_result;
+  logic [(WIDTH_MAC+GUARD_BIT)-1:0]        mac_abs;  
+  logic [(WIDTH_MAC+GUARD_BIT)-1:0]        mac_scaled;
   logic signed [(WIDTH_MAC+GUARD_BIT)-1:0] mac_extended;
 //===================================PIXEL_COORDINATE==================================================================
 	always_ff @(posedge i_clk or negedge ni_rst) begin
@@ -54,7 +55,7 @@ module convolution #(
       y_cnt          <= '0;
     end else if (i_ready) begin 
       if (~i_valid_window) begin
-        if (fill_cnt == WIDTH + 1) begin // Khi đếm từ 0 đến W là đủ W+2 nhịp
+        if (fill_cnt == WIDTH + 1) begin // the first window of pixel need W+2 pixel to fullfill the window
           i_valid_window <= 1'b1;
           x_cnt          <= '0;
           y_cnt          <= '0;
@@ -62,7 +63,7 @@ module convolution #(
           fill_cnt <= fill_cnt + 1'b1;
         end
       end else begin
-        if (x_cnt == WIDTH - 1) begin
+        if (x_cnt == WIDTH-1) begin
           x_cnt <= '0;
           if (y_cnt == LENGTH - 1) begin
             y_cnt          <= '0;
@@ -82,19 +83,22 @@ module convolution #(
   assign i_top_align   = (y_cnt == 0);
   assign i_bot_align   = (y_cnt == LENGTH - 1);
 	// line buffer read enable
-	assign lb1_full      = i_valid_window;
-	assign lb2_full      = (y_cnt > 0) & i_valid_window;
+	assign lb1_full      = (~i_valid_window & (fill_cnt >= (WIDTH - 1))) | i_valid_window;
+	assign lb2_full      = (y_cnt > 0) | (i_valid_window & (y_cnt == 0) & (x_cnt >= (WIDTH - 3)));
 	assign rd_en1        = i_ready & lb1_full;
 	assign rd_en2        = i_ready & lb2_full;
-	assign mac_enb       = i_valid_window & i_ready & (~window_err);
+	assign mac_enb       = i_valid_window & i_ready;
 //==============MAC_INPUT====================================================================================
   always_comb begin
     mac_pixels[0] = window_00; mac_pixels[1] = window_01; mac_pixels[2] = window_02;
     mac_pixels[3] = window_10; mac_pixels[4] = window_11; mac_pixels[5] = window_12;
     mac_pixels[6] = window_20; mac_pixels[7] = window_21; mac_pixels[8] = window_22;
   end
+  
 //==============INSTANTIATION====================================================================================
-	line_buffer image_storage (
+	line_buffer #(
+    .IMAGE_WIDTH(WIDTH)
+  )image_storage (
 		.i_clk        (i_clk),
 		.ni_rst       (ni_rst),
 		.i_ready      (i_ready),
@@ -128,6 +132,7 @@ module convolution #(
   always_comb begin : post_processing
     mac_abs    = '0;
     mac_scaled = '0;
+    o_pix_conv = '0;
     if (mac_kernel[4] == 4'd1) begin                                                                // blur
       // mac_scaled = ((mac_extended << 4) + (mac_extended << 3) + (mac_extended << 2)) >> 8
       // 28/256 =16/256 + 8/256 +4/256 = 1/16 +1/32 +1/64
@@ -143,7 +148,9 @@ module convolution #(
       mac_scaled = mac_abs;
     end
     if (mac_valid) begin                    // saturation
-      if (mac_scaled > 20'd255) begin
+      if (^mac_scaled === 1'bx) begin
+        o_pix_conv = 8'd0;
+      end else if (mac_scaled > 20'd255) begin
         o_pix_conv = 8'd255;
       end else begin
         o_pix_conv = mac_scaled[7:0];
@@ -152,4 +159,5 @@ module convolution #(
       o_pix_conv = 8'd0;
     end
   end
+  assign o_valid = mac_valid;
 endmodule

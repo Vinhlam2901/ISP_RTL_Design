@@ -51,7 +51,6 @@ module mac #(
   always_comb begin: mul_stage
     mul_add_next.op_mul = op_mul;
   end
-  
   always_ff @(posedge i_clk or negedge ni_rst) begin : mul_add_register
     if(~ni_rst) begin
       mul_add_reg.op_mul <= '0;
@@ -60,7 +59,6 @@ module mac #(
       mul_add_reg.op_mul <= mul_add_next.op_mul;
     end
   end
-
 //======================== STAGE 2: ADDER LEVEL 1 ========================================================================================
   cla_adder_20bit adder0 (.a_i(mul_add_reg.op_mul[0]),.b_i(mul_add_reg.op_mul[1]),.cin_i(1'b0),.result_o(add_out[0]),.cout_o());
   cla_adder_20bit adder1 (.a_i(mul_add_reg.op_mul[2]),.b_i(mul_add_reg.op_mul[3]),.cin_i(1'b0),.result_o(add_out[1]),.cout_o());
@@ -70,7 +68,6 @@ module mac #(
     add_add_next.add_out       = add_out[3:0];
     add_add_next.op_mul8_delay = mul_add_reg.op_mul[8];
   end
-  
   always_ff @(posedge i_clk or negedge ni_rst) begin : add_add_register
     if(~ni_rst) begin
       add_add_reg <= '0;
