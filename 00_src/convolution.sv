@@ -94,7 +94,6 @@ module convolution #(
     mac_pixels[3] = window_10; mac_pixels[4] = window_11; mac_pixels[5] = window_12;
     mac_pixels[6] = window_20; mac_pixels[7] = window_21; mac_pixels[8] = window_22;
   end
-  
 //==============INSTANTIATION====================================================================================
 	line_buffer #(
     .IMAGE_WIDTH(WIDTH)
@@ -136,9 +135,9 @@ module convolution #(
     if (mac_kernel[4] == 4'd1) begin                                                                // blur
       // mac_scaled = ((mac_extended << 4) + (mac_extended << 3) + (mac_extended << 2)) >> 8
       // 28/256 =16/256 + 8/256 +4/256 = 1/16 +1/32 +1/64
-      mac_scaled = {4'b0, mac_result[14:4]} + {5'b0, mac_result[14:5]} + {6'b0, mac_result[14:6]};  // divided to 9
+      mac_scaled = {4'b0, mac_extended[15:4]} + {5'b0, mac_extended[15:5]} + {6'b0, mac_extended[15:6]};  // divided to 9
     end else if (mac_kernel[4] == 4'd4) begin                                                       // gaussian
-      mac_scaled = {{GAUSSIAN_SHIFT{mac_result[14]}}, mac_result[14:4]};
+      mac_scaled = {{GAUSSIAN_SHIFT{mac_extended[15]}}, mac_extended[15:4]};
     end else begin
       if (mac_extended < 0) begin
         mac_abs = (~mac_extended + 1);

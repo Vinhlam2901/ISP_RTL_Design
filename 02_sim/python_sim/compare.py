@@ -1,53 +1,54 @@
+import cv2
 import numpy as np
+import os
 
-W = 4
-H = 4
-TOTAL_PIXELS = W * H
+# ==========================================
+# CẤU HÌNH THÔNG SỐ (PHẢI KHỚP VỚI VERILOG)
+# ==========================================
+INPUT_IMAGE = "images.jpeg"  # Tên ảnh biển báo gốc của bạn
+HEX_FILE = "input_gaussian_noise.hex"       # File Hex sẽ xuất ra
+VERIFY_IMAGE = "gaussian_noise_image.png"   # File ảnh kiểm chứng sinh ra từ Hex
+WIDTH = 128                       # Chiều rộng ngõ vào phần cứng
+HEIGHT = 128                      # Chiều cao ngõ vào phần cứng
 
-# 1. TẠO ẢNH TEST PATTERN VÀ LƯU FILE HEX
-img = np.zeros((H, W), dtype=int)
-img[:, :W//2] = 10
-img[:, W//2:] = 90
-
-with open("input_img.hex", "w") as f:
-    for val in img.flatten():
-        f.write(f"{val:02X}\n")
-
-# 2. XỬ LÝ SOBEL GOLDEN MODEL (Bao gồm cả viền giả lập RTL)
-kernel = np.array([[-1, 0, 1],
-                   [-2, 0, 2],
-                   [-1, 0, 1]])
-                   
-expected_pixels = []
-padded_img = np.pad(img, pad_width=1, mode='constant', constant_values=0)
-
-for y in range(1, H + 1):
-    for x in range(1, W + 1):
-        window = padded_img[y-1:y+2, x-1:x+2]
-        mac_abs = abs(np.sum(window * kernel))
-        expected_pixels.append(255 if mac_abs > 255 else int(mac_abs))
-
-# 3. KIỂM TRA CHÉO VỚI DỮ LIỆU RTL
+# ==========================================
+# BƯỚC 1: XỬ LÝ ẢNH GỐC VÀ XUẤT FILE HEX
+# ==========================================
+if not os.path.exists(INPUT_IMAGE):
+    print(f"LỖI: Không tìm thấy file {INPUT_IMAGE}")
+else:
+    # 1. Đọc ảnh và ép buộc chuyển sang ảnh xám (Grayscale)
+    img_gray = cv2.imread(INPUT_IMAGE, cv2.IMREAD_GRAYSCALE)
+    # 2. Resize ảnh về đúng kích thước cấu hình (W x H)
+    img_resized = cv2.resize(img_gray, (WIDTH, HEIGHT))
+    # 3. Làm phẳng ảnh (Flatten) thành mảng 1D
+    flattened_data = img_resized.flatten()
+    # 4. Ghi ra file Hex (Định dạng 2 chữ số Hex, viết hoa)
+    with open(HEX_FILE, "w") as f:
+        for pixel in flattened_data:
+            f.write(f"{pixel:02X}\n")
+    print(f"✅ BƯỚC 1: Đã xuất thành công {len(flattened_data)} pixel (Kích thước {WIDTH}x{HEIGHT}) ra file {HEX_FILE}.")
+# ==========================================
+# BƯỚC 2: ĐỌC LẠI FILE HEX ĐỂ KIỂM CHỨNG (MÔ PHỎNG NGÕ RA)
+# ==========================================
 try:
-    with open("output_img.hex", 'r') as f:
-        # Ép kiểu chữ hoa và lọc rác
-        rtl_lines = [l.strip().upper() for l in f.readlines() if l.strip()]
-        
-    # Cắt bỏ toàn bộ Ghost Pixels dư thừa ở đuôi
-    rtl_valid = rtl_lines[:TOTAL_PIXELS]
-    exp_valid = [f"{val:02X}" for val in expected_pixels]
-
-    mismatches = 0
-    for i in range(TOTAL_PIXELS):
-        if exp_valid[i] != rtl_valid[i]:
-            print(f"Lệch tại Pixel {i+1}: Python = {exp_valid[i]}, RTL = {rtl_valid[i]}")
-            mismatches += 1
-            if mismatches >= 10: break
-
-    if mismatches == 0:
-        print("\n==================================================")
-        print("🎉 CHÚC MỪNG! KẾT QUẢ KHỚP NHAU 100%.")
-        print(" THIẾT KẾ PHẦN CỨNG RTL CHÍNH XÁC TUYỆT ĐỐI!")
-        print("==================================================\n")
-except FileNotFoundError:
-    print("Vui lòng chạy lại Testbench trên ModelSim trước khi verify.")
+    # 1. Đọc từng dòng trong file Hex, ép về cơ số 16 (Hex to Int)
+    with open(HEX_FILE, "r") as f:
+        hex_lines = f.readlines()
+   
+    recovered_pixels = np.array([int(line.strip(), 16) for line in hex_lines], dtype=np.uint8)
+    
+    # 2. CỐT LÕI: Reshape mảng 1D về lại kích thước 2D. 
+    # Nếu chiều dài mảng không bằng W * H, lệnh này sẽ báo lỗi ngay!
+    recovered_img = recovered_pixels.reshape((HEIGHT, WIDTH))
+    
+    # 3. Lưu ảnh kiểm chứng
+    cv2.imwrite(VERIFY_IMAGE, recovered_img)
+    print(f"✅ BƯỚC 2: Đã tạo ảnh kiểm chứng tại {VERIFY_IMAGE}.")
+    print("👉 Hãy mở file 'verify_hex.png' lên. Nếu ảnh hình tròn hoàn hảo, file Hex của bạn đã chuẩn 100%!")
+    
+except ValueError as e:
+    print("❌ LỖI RESHAPE: Số lượng dữ liệu trong file Hex không khớp với kích thước HEIGHT * WIDTH bạn cài đặt!")
+    print(f"Chi tiết lỗi từ Python: {e}")
+except Exception as e:
+    print(f"❌ Có lỗi bất ngờ xảy ra ở BƯỚC 2: {e}")

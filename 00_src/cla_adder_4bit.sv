@@ -7,28 +7,35 @@
 // Updated date    : 17/06/2026
 //============================================================================================================
 module cla_adder_4bit (
-	input  wire [3:0] a_i,
-	input  wire [3:0] b_i,
-	input  wire       cin_i,
-	output reg        prog_o,
-	output reg        gen_no,
-	output reg  [3:0] s_o
+	input  logic [3:0] a_i,
+	input  logic [3:0] b_i,
+	input  logic       cin_i,
+	output logic       prog_o,
+	output logic       gen_no,
+	output logic [3:0] s_o
 );
 //==================DECLARATION=============================================================================
-	wire [3:0] prog_temp, gen_temp;
-	wire [2:0] cin_temp;
+	logic [3:0] prog_temp, gen_temp;
+	logic [2:0] cin_temp;
 //==================CARRY=============================================================================
-	// c[1] = g[0] + p[0]cin = ~g.~(p+c)
-	assign cin_temp[0] = ~(gen_temp[0] & ~(prog_temp[0] & cin_i));
+	// c[1] = g[0] + p[0]cin = ~g.~(p&c)
+	assign cin_temp[0] = ~(gen_temp[0] 	
+										 & ~(prog_temp[0] 
+										 &   cin_i));
 	// c[2] = g[1] + p[1]c[1] = ~(~g[1] & ~(p[1]g[0]) & ~(p[1]p[0]cin))
-	assign cin_temp[1] = ~(gen_temp[1] & ~(prog_temp[1] & ~gen_temp[0])  & ~(prog_temp[1] & prog_temp[0] & cin_i));
+	assign cin_temp[1] = ~(gen_temp[1] 
+										 & ~(prog_temp[1] & ~gen_temp[0])  
+										 & ~(prog_temp[1] & prog_temp[0] & cin_i));
 	// c[3] = g[2] + p[2]c[2] = g[2] + p[2]g[1] + p[2]p[1]g[0] + p[2]p[1]p[0]cin
-	assign cin_temp[2] = ~(gen_temp[2] & ~(prog_temp[2] & ~gen_temp[1])  & ~(prog_temp[2] & prog_temp[1] & ~gen_temp[0]) 
-																	    & ~(prog_temp[2] & prog_temp[1] & prog_temp[0] & cin_i));
+	assign cin_temp[2] = ~(gen_temp[2] 
+										 & ~(prog_temp[2] & ~gen_temp[1])  
+										 & ~(prog_temp[2] & prog_temp[1] & ~gen_temp[0]) 
+										 & ~(prog_temp[2] & prog_temp[1] & prog_temp[0] & cin_i));
 	always_comb begin : carry_out
 		// carry generate when there is 1st: generate carry in cla_3, generate carry in cla_2 and propagate to cla_2, and so on
-		gen_no = gen_temp[3] & ~(prog_temp[3] & ~gen_temp[2]) & ~(prog_temp[3] & prog_temp[2] & ~gen_temp[1])
-					               & ~(prog_temp[3] & prog_temp[2] &   prog_temp[1] & ~gen_temp[0]);
+		gen_no = gen_temp[3] & ~(prog_temp[3] & ~gen_temp[2]) 
+												 & ~(prog_temp[3] & prog_temp[2] & ~gen_temp[1])
+					               & ~(prog_temp[3] & prog_temp[2] &  prog_temp[1] & ~gen_temp[0]);
 		prog_o = &prog_temp;
 	end
 //==================RESULT=============================================================================

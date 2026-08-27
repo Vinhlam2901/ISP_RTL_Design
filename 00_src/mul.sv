@@ -18,7 +18,7 @@ module mul #(
 //===========================DECLARATION=======================================
 	logic                                    cout_o;
 	logic [(WIDTH_OPB/2)-1:0][WIDTH_OPA+1:0] pp_o;
-	logic [(WIDTH_OPB/2)-1:0][WIDTH_MAC-1:0] concat_pp;
+logic [(WIDTH_OPB/2)-1:0][WIDTH_MAC-1:0] concat_pp;
 	logic [(WIDTH_OPB/2)-1:0]                neg_o;
 	logic [WIDTH_MAC-1:0]                    sum_partial;
 	logic [WIDTH_MAC-1:0]                    carry_partial;
@@ -32,7 +32,7 @@ module mul #(
 		.neg_o(neg_o),
 		.pp_o(pp_o)
 	);
-  	//---------------CONCATENATION_PARTIAL-------------------------
+  //---------------CONCATENATION_PARTIAL-------------------------
 	always_comb begin : concat_partial
 		concat_pp[0] = {{(WIDTH_MAC-(WIDTH_OPA+2)){pp_o[0][WIDTH_OPA+1]}}, pp_o[0]};
 		concat_pp[1] = {pp_o[1], 2'b0};
@@ -55,7 +55,6 @@ module mul #(
     sum_partial[3]   = concat_pp[0][3] ^ concat_pp[1][3];
     carry_partial[3] = concat_pp[0][3] & concat_pp[1][3];
     //-------------- BIT 11:4 : ARRAY OF HALF_ADDERS -----
-    // Viết gọn bằng toán tử bitwise cho 8 bit cùng lúc!
     sum_partial[11:4]   = concat_pp[0][11:4] ^ concat_pp[1][11:4];
     carry_partial[11:4] = concat_pp[0][11:4] & concat_pp[1][11:4];
   end

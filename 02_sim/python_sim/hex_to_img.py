@@ -26,4 +26,4 @@ def hex_to_image(input_hex, output_img):
     print(f"Hoàn tất! Bức ảnh chuẩn xác đã được lưu tại: {output_img}")
     img_out.show()
 
-hex_to_image("output_img.hex", "output_img.png")
+hex_to_image("img_gaussian_for_sobely.hex", "noise_gaussian_sobel.png")

@@ -25,9 +25,9 @@ module booth_encoder #(
 	assign sel_lines = {opb_i, 1'b0};
 	always_comb begin : booth_encoder
 		for (int i = 0; i < WIDTH_OPB; i += 2) begin
-			single_o[i/2] = sel_lines[i] ^ sel_lines[i+1];
-			double_o[i/2] = (sel_lines[i] & sel_lines[i+1] & ~sel_lines[i+2]) | (~sel_lines[i] & ~sel_lines[i+1] & sel_lines[i+2]);
-			neg_o[i/2]    = ({sel_lines[i+2], sel_lines[i+1], sel_lines[i]} == 3'b111) ? 1'b0 : sel_lines[i+2];
+			single_o[i/2] =   sel_lines[i]  ^ sel_lines[i+1];
+			double_o[i/2] = ( sel_lines[i]  & sel_lines[i+1] & ~sel_lines[i+2]) | (~sel_lines[i] & ~sel_lines[i+1] & sel_lines[i+2]);
+			neg_o[i/2]    = ({sel_lines[i+2], sel_lines[i+1],   sel_lines[i]} == 3'b111) ? 1'b0 : sel_lines[i+2];
 		end
 	end
 	assign single_ext = {1'b0, opa_i}; 

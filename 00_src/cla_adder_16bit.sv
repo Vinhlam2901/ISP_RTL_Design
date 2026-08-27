@@ -25,6 +25,6 @@ module cla_adder_16bit (
 //===============CARRY_PROCESS==========================================================================================
 	cla_carry_unit_4bit carry_process (.p_i(prog_temp),.g_ni(gen_ntemp),.cin_i(cin_i),.cin_out(cin_out),.p_o(p_o),.g_no(g_no));
 	always_comb begin : carry_out
-		cout_o = cin_out[5];
+		cout_o = cin_out[4];
 	end
 endmodule

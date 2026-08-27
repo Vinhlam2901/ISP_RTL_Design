@@ -32,7 +32,7 @@ module cla_carry_unit_4bit (
 		cin_temp[3] = ~(g_ni[3] & ~(p_i[3]                            & ~g_ni[2]) 
 													  & ~(p_i[3] & p_i[2]                   & ~g_ni[1]) 
 													  & ~(p_i[3] & p_i[2] & p_i[1]          & ~g_ni[0]) 
-													  & ~(p_i[3] & p_i[2] & p_i[1] & p_i[0] & cin_i   ));								 											 
+													  & ~(p_i[3] & p_i[2] & p_i[1] & p_i[0] & cin_i   ));								 
 	end
 //================== DYNAMIC BOUNDARY GATING FOR RVV ====================================
   always_comb begin : boundary_gating
@@ -41,6 +41,8 @@ module cla_carry_unit_4bit (
 	// p_o = p[n-1].p[n-2].p_n[n]
 	always_comb begin : prog_gen_out
 		p_o  = &p_i;
-		g_no = g_ni[3] & ~(p_i[3] & ~g_ni[2]) & ~(p_i[3] & p_i[2] & ~g_ni[1]) & ~(p_i[3] & p_i[2] & p_i[1] & ~g_ni[0]);
+    g_no = g_ni[3] & ~(p_i[3]                   & ~g_ni[2]) 
+                   & ~(p_i[3] & p_i[2]          & ~g_ni[1]) 
+                   & ~(p_i[3] & p_i[2] & p_i[1] & ~g_ni[0]);
 	end
 endmodule

@@ -15,4 +15,4 @@ def image_to_hex(input_path, output_path):
             f.write(f"{pixel:02X}\n")      
     print(f"Đã tạo file {output_path} thành công với {len(pixel_data)} pixels!")
 # Chạy thử
-image_to_hex("image_test.jpeg", "input_img.hex")
+image_to_hex("gaussian_noise_image.png", "gaussian_noise_for_sobely.hex")
