@@ -17,9 +17,9 @@ module compare (
 //==========================DECLARATION=======================================
   logic a_ge_b, b_ge_c, a_ge_c;
 //=========================INSTANTIATION======================================
-  tree_comp_8bit comp_ab (.x(a_i), .y(b_i), .ge(a_ge_b));
-  tree_comp_8bit comp_bc (.x(b_i), .y(c_i), .ge(b_ge_c));
-  tree_comp_8bit comp_ac (.x(a_i), .y(c_i), .ge(a_ge_c));
+  tree_comp_8bit comp_ab (.x_i(a_i), .y_i(b_i), .ge_o(a_ge_b));
+  tree_comp_8bit comp_bc (.x_i(b_i), .y_i(c_i), .ge_o(b_ge_c));
+  tree_comp_8bit comp_ac (.x_i(a_i), .y_i(c_i), .ge_o(a_ge_c));
 //====================LOGICAL_COMPARE=========================================
   always_comb begin
     min_o = (~a_ge_b && ~a_ge_c) ? a_i :                          // A < B && A < C

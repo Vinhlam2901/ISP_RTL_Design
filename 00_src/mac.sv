@@ -79,7 +79,7 @@ module mac #(
       add_add_reg <= add_add_next;
     end
   end
-//========================STAGE 3: ACCUMULATOR========================
+//========================STAGE 3: ACCUMULATOR=============================================================================================
   cla_adder_16bit adder4 (.a_i(add_add_reg.add_out[0]), .b_i(add_add_reg.add_out[1]), .cin_i(1'b0), .result_o(add_accum[4]), .cout_o());
   cla_adder_16bit adder5 (.a_i(add_add_reg.add_out[2]), .b_i(add_add_reg.add_out[3]), .cin_i(1'b0), .result_o(add_accum[5]), .cout_o());  
   always_comb begin: add_accum_stage

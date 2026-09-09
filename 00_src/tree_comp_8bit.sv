@@ -22,6 +22,6 @@ module tree_comp_8bit (
 //===========LOGIC_STAGE4===============================================
   assign g4    = g3[1] | (e3[1] & g3[0]);
   assign e4    = e3[1] & e3[0];
-  assign ge_o    = g4 | e4;
+  assign ge_o  = g4 | e4;
 
 endmodule
