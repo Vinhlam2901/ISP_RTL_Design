@@ -18,7 +18,7 @@ module mul #(
 //===========================DECLARATION=======================================
 	logic                                    cout_o;
 	logic [(WIDTH_OPB/2)-1:0][WIDTH_OPA+1:0] pp_o;
-logic [(WIDTH_OPB/2)-1:0][WIDTH_MAC-1:0] concat_pp;
+  logic [(WIDTH_OPB/2)-1:0][WIDTH_MAC-1:0] concat_pp;
 	logic [(WIDTH_OPB/2)-1:0]                neg_o;
 	logic [WIDTH_MAC-1:0]                    sum_partial;
 	logic [WIDTH_MAC-1:0]                    carry_partial;

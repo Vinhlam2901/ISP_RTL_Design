@@ -68,24 +68,36 @@ module line_buffer #(
       o_p20 <= o_p21; o_p21 <= o_p22; o_p22 <= i_pix;
     end
   end
-//========================== ZERO PADDING =====================================
+//==========================EDGE_PADDING=====================================
   always_comb begin
-    window_00 = (i_top_align | i_left_align)  ? 8'b0 : o_p00;
-    window_01 =  i_top_align                  ? 8'b0 : o_p01;
-    window_02 = (i_top_align | i_right_align) ? 8'b0 : o_p02;
-    window_10 =  i_left_align                 ? 8'b0 : o_p10;
-    window_11 =                                        o_p11;
-    window_12 =  i_right_align                ? 8'b0 : o_p12;
-    window_20 = (i_bot_align | i_left_align)  ? 8'b0 : o_p20;
-    window_21 =  i_bot_align                  ? 8'b0 : o_p21;
-    window_22 = (i_bot_align | i_right_align) ? 8'b0 : o_p22;
+    //------------TOP_ROW_OF_WINDOW_DONT_HAVE_DATA-------------------------
+    window_00 = i_top_align ? o_p10 : o_p00;
+    window_01 = i_top_align ? o_p11 : o_p01; 
+    window_02 = i_top_align ? o_p12 : o_p02;
+    //------------BOT_ROW_OF_WINDOW_DONT_HAVE_DATA-------------------------
+    window_20 = i_bot_align ? o_p10 : o_p20;
+    window_21 = i_bot_align ? o_p11 : o_p21; 
+    window_22 = i_bot_align ? o_p12 : o_p22;
+    //------------MIDDLE_ROW_OF_WINDOW_ALWAYS_HAVE_DATA-------------------------
+    window_10 = o_p10;
+    window_11 = o_p11;
+    window_12 = o_p12;
+    if (i_left_align) begin
+      window_00 = window_01;
+      window_10 = o_p11;
+      window_20 = window_21;
+    end
+    if (i_right_align) begin
+      window_02 = window_01;
+      window_12 = o_p11;
+      window_22 = window_21;
+    end
   end
 //========================== CROSS ERROR CHECK ================================
   always_ff @(posedge i_clk or negedge ni_rst) begin
     if (~ni_rst) begin
       cnt_cell <= '0;
     end else if (i_ready) begin
-      // Nâng cấp: Ép kiểu IMAGE_WIDTH về đúng số bit để tránh cảnh báo
       if (cnt_cell == IMAGE_WIDTH - 1) begin
         cnt_cell <= '0;
       end else begin
@@ -94,7 +106,6 @@ module line_buffer #(
     end
   end
   always_comb begin
-    // Nâng cấp: Sử dụng '0 và 'd1 thay vì fix cứng 8'd0 để tương thích mọi kích thước
     o_cross_err = (cnt_cell == '0) | (cnt_cell == 'd1);
   end 
 endmodule
