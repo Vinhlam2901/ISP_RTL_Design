@@ -64,9 +64,16 @@ package package_param;
   typedef struct packed {
     logic [8:0][WIDTH_PIXEL-1:0] diff;
     logic [8:0][WIDTH_PIXEL-1:0] pre_px;
-  } stage1_lut;
+    logic [7:0]                  cout_diff;
+  } stage1_abs;
   typedef struct packed {
-    logic [20:0] mac_num;
-    logic [12:0] mac_den;
-  } stage2_mac;
+    logic [8:0][WIDTH_PIXEL-1:0] abs_diff;
+    logic [8:0][WIDTH_PIXEL-1:0] pre_px;
+  } stage2_lut;
+//==================DIVISION_STRUCT==================
+  typedef struct packed {
+    logic [13:0] remain_o4;
+    logic [13:0] den_i;
+    logic [7:0] quoti_o4;
+  } next_div_stage;
 endpackage
