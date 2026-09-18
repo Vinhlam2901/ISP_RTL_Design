@@ -15,7 +15,7 @@ module cla_adder_13bit (
 );
   //===============DECLARATION=============================================
   logic cout_12;       // Carry out tràn ra từ bộ 12-bit
-  logic p_12, g_12;    // Propagate và Generate cho riêng bit 12 (MSB)
+  logic p_12, ng_12;    // Propagate và Generate cho riêng bit 12 (MSB)
   //===============LÕI 12-BIT==============================================
   // Gọi trực tiếp bộ 12-bit để giải quyết một lúc từ bit 0 đến bit 11
   cla_adder_12bit cla_12_core (
@@ -28,12 +28,12 @@ module cla_adder_13bit (
   //===============MỞ RỘNG 1-BIT MSB (BIT THỨ 13)==========================
   always_comb begin : msb_logic
     // Tính P và G cho bit thứ 13 (index 12)
-    p_12 = a_i[12] ^ b_i[12];
-    g_12 = a_i[12] & b_i[12];
+    p_12  = a_i[12] ^ b_i[12];
+    ng_12 = ~(a_i[12] & b_i[12]);
     // Tính tổng cho bit 13, lấy trực tiếp cout_12 làm cin
     result_o[12] = p_12 ^ cout_12;
     // Tính Carry Out cuối cùng của toàn mạch 13-bit
-    cout_o = g_12 | (p_12 & cout_12);
+    cout_o = ~ng_12 | (p_12 & cout_12);
   end
 
 endmodule

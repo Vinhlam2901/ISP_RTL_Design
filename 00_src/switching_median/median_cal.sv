@@ -8,13 +8,15 @@
 //=============================================================================================================
 import package_param::*;
 module median_cal #(
-  parameter WIDTH_PIXEL    = 8
+  parameter WIDTH_PIXEL = 8
 )(
   input  logic                        i_clk,
   input  logic                        ni_rst,
+  input  logic                        i_ready,
   input  logic                        i_valid,
-	input  logic [8:0][WIDTH_PIXEL-1:0] compare_pixels,
-	output logic      [WIDTH_PIXEL-1:0] median_o
+	input  logic [8:0][WIDTH_PIXEL-1:0] o_compare_pixels,
+  output logic                        o_valid,
+	output logic      [WIDTH_PIXEL-1:0] o_median
 );
 //==========================DECLARATION=================================================
   //----------------comparing--------------------------
@@ -33,7 +35,7 @@ module median_cal #(
   always_ff @(posedge i_clk or negedge ni_rst) begin : valid_tracking
     if (~ni_rst) begin
       valid_shift_reg <= 3'b0;
-    end else begin
+    end else if (i_ready) begin
       valid_shift_reg <= {valid_shift_reg[1:0], i_valid}; 
     end
   end
@@ -43,10 +45,10 @@ module median_cal #(
   compare_row #(
     .WIDTH_PIXEL(WIDTH_PIXEL)
   ) compare_stage1 (
-    .compare_pixels(compare_pixels),
-    .min_o(min_stage1_o),
-    .med_o(med_stage1_o),
-    .max_o(max_stage1_o)
+    .i_compare_pixels(o_compare_pixels),
+    .o_min(min_stage1_o),
+    .o_med(med_stage1_o),
+    .o_max(max_stage1_o)
   );
   always_comb begin : stage1_comb
     //-----------MIN--------------
@@ -65,7 +67,7 @@ module median_cal #(
   always_ff @(posedge i_clk or negedge ni_rst) begin : stage1_register_block
     if (~ni_rst) begin
       stage1_reg <= '0;
-    end else if (i_valid) begin
+    end else if (i_ready) begin
       stage1_reg <= stage1_next;
     end
   end
@@ -87,10 +89,10 @@ module median_cal #(
   compare_row #(
     .WIDTH_PIXEL(WIDTH_PIXEL)
   ) compare_stage_2 (
-    .compare_pixels(compare_stage2),
-    .min_o(min_stage2_o),             // MAX of MIN (max_stage2_o[0]) - index 0 has MIN
-    .med_o(med_stage2_o),             // MED of MED (med_stage2_o[1]) - index 1 has MED
-    .max_o(max_stage2_o)              // MIN of MAX (min_stage2_o[2]) - index 2 has MAX
+    .i_compare_pixels(compare_stage2),
+    .o_min(min_stage2_o),             // MAX of MIN (max_stage2_o[0]) - index 0 has MIN
+    .o_med(med_stage2_o),             // MED of MED (med_stage2_o[1]) - index 1 has MED
+    .o_max(max_stage2_o)              // MIN of MAX (min_stage2_o[2]) - index 2 has MAX
   );
   always_comb begin : stage2_comb
     stage2_next.max_of_mins = max_stage2_o[0];
@@ -100,7 +102,7 @@ module median_cal #(
   always_ff @(posedge i_clk or negedge ni_rst) begin : stage2_register_block
     if (~ni_rst) begin
       stage2_reg <= '0;
-    end else if (valid_shift_reg[0]) begin
+    end else if (valid_shift_reg[0] & i_ready) begin
       stage2_reg <= stage2_next;
     end
   end
@@ -117,19 +119,17 @@ module median_cal #(
     // Nếu không phải A hay B, thì chắc chắn C là trung vị.
     if (~(ge_m12 ^ ge_m31)) begin
       stage3_comb_median = max_of_mins;
-    end 
-    else if (~(ge_m12 ^ ge_m23)) begin
+    end else if (~(ge_m12 ^ ge_m23)) begin
       stage3_comb_median = med_of_meds;
-    end 
-    else begin
+    end else begin
       stage3_comb_median = min_of_maxs;
     end
   end
   always_ff @(posedge i_clk or negedge ni_rst) begin : stage3_register_block
     if (~ni_rst) begin
-      median_o <= '0;
-    end else if (valid_shift_reg[1]) begin
-      median_o <= stage3_comb_median;
+      o_median <= '0;
+    end else if (valid_shift_reg[1] & i_ready) begin
+      o_median <= stage3_comb_median;
     end
   end
 endmodule

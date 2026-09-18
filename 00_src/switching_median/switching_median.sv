@@ -15,7 +15,7 @@ module switching_median #(
   input  logic                   i_clk,
   input  logic                   ni_rst,
   input  logic                   i_ready,
-  input  logic [WIDTH_PIXEL-1:0] threshold_i,
+  input  logic [WIDTH_PIXEL-1:0] i_threshold,
   input  logic [WIDTH_PIXEL-1:0] i_pix,
   output logic                   o_valid,
   output logic [WIDTH_PIXEL-1:0] o_pix_median
@@ -65,11 +65,13 @@ module switching_median #(
   ) median_finding (
     .i_clk         (i_clk),
     .ni_rst        (ni_rst),
+    .i_ready       (i_ready),
     .i_valid       (compare_start),
-    .compare_pixels(compare_pixels),
-    .median_o      (median_o)
+    .o_compare_pixels(compare_pixels),
+    .o_valid       (),
+    .o_median      (median_o)
   );
-  //========================PIPELINE CONTROL========================================================================
+//========================PIPELINE CONTROL========================================================================
   always_ff @(posedge i_clk) begin : valid_tracking_register
     if (~ni_rst) begin
       valid_shift_reg <= 3'b0;
@@ -85,28 +87,24 @@ module switching_median #(
     .compare_pixels  ({window_21, window_11, window_01}),
     .px_deviation_abs(vert_dev)
   );
-  
   median_detected #(
     .WIDTH_PIXEL(WIDTH_PIXEL)
   ) horizon_deviation (
     .compare_pixels  ({window_12, window_11, window_10}),
     .px_deviation_abs(hor_dev)
 );
-  
   median_detected #(
     .WIDTH_PIXEL(WIDTH_PIXEL)
   ) crossleft_deviation (
     .compare_pixels  ({window_22, window_11, window_00}),
     .px_deviation_abs(crossleft_dev)
   );
-  
   median_detected #(
     .WIDTH_PIXEL(WIDTH_PIXEL)
   ) crossright_deviation (
     .compare_pixels  ({window_20, window_11, window_02}),
     .px_deviation_abs(crossright_dev)
   );
-
   //========================STAGE 1: LƯU ĐỘ LỆCH VÀ PIXEL GỐC=======================================================
   always_comb begin : stage1_comb
     stage1_next.vert_abs   = vert_dev;
@@ -115,7 +113,6 @@ module switching_median #(
     stage1_next.crossr_abs = crossright_dev;
     stage1_next.center_px  = window_11;
   end
-  
   always_ff @(posedge i_clk) begin : stage1_register
     if(~ni_rst) begin
       stage1_reg <= '0;
@@ -123,7 +120,6 @@ module switching_median #(
       stage1_reg <= stage1_next;
     end
   end
-
   //------------MINIMUM_DEVIATION-------------------------------------------
   tree_comp_8bit comp_vert_hor (
     .x_i (stage1_reg.vert_abs), 
@@ -131,26 +127,22 @@ module switching_median #(
     .ge_o(ge_vh)
   );
   assign min_vh = ge_vh ? stage1_reg.hor_abs : stage1_reg.vert_abs;
-  
   tree_comp_8bit comp_cross_leftright (
     .x_i (stage1_reg.crossl_abs), 
     .y_i (stage1_reg.crossr_abs), 
     .ge_o(ge_lr)
   );
   assign min_lr = ge_lr ? stage1_reg.crossr_abs : stage1_reg.crossl_abs;
-  
   tree_comp_8bit min_deviation (
     .x_i (min_vh), 
     .y_i (min_lr), 
     .ge_o(ge_dev)
   );
   assign min_dev = ge_dev ? min_lr : min_vh;
-  
   always_comb begin : stage2_comb
     stage2_next.min_all   = min_dev;
     stage2_next.center_px = stage1_reg.center_px;
   end
-
   always_ff @(posedge i_clk) begin : stage2_register
     if(~ni_rst) begin
       stage2_reg <= '0;
@@ -158,20 +150,17 @@ module switching_median #(
       stage2_reg <= stage2_next;
     end
   end
-
   //-------------THRESHOLD_COMPARE--------------------------------
   tree_comp_8bit compare_threshold (
     .x_i (stage2_reg.min_all), 
-    .y_i (threshold_i), 
+    .y_i (i_threshold), 
     .ge_o(ge_threshold)
   );
   assign is_noise = ge_threshold ? 1'b1 : 1'b0;
-  
   always_comb begin : stage3_comb
     stage3_next.noise_flag = is_noise;
     stage3_next.center_px  = stage2_reg.center_px;
   end
-  
   always_ff @(posedge i_clk) begin : stage3_register
     if(~ni_rst) begin
       stage3_reg <= '0;
@@ -179,7 +168,6 @@ module switching_median #(
       stage3_reg <= stage3_next;
     end
   end
-
   //--------------MEDIAN_SWITCHING---------------------------------
   assign o_pix_median = stage3_reg.noise_flag ? median_o : stage3_reg.center_px;
 endmodule

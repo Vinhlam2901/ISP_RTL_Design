@@ -8,8 +8,8 @@
 module compare_row #(
   parameter WIDTH_PIXEL    = 8     // 8bit for 1 pixel
 )(
-	input  logic [8:0][WIDTH_PIXEL-1:0] compare_pixels,
-	output logic [2:0][WIDTH_PIXEL-1:0] min_o, med_o, max_o
+	input  logic [8:0][WIDTH_PIXEL-1:0] i_compare_pixels,
+	output logic [2:0][WIDTH_PIXEL-1:0] o_min, o_med, o_max
 );
 //==============DECLARATION====================================================================================
   //----------------comparing--------------------------
@@ -21,87 +21,87 @@ module compare_row #(
   logic [1:0] max_r1_sel, max_r2_sel, max_r3_sel;
 //==============INSTANTIATION====================================================================================
   //------------------FINDING_MAX_MIN_MEDIAN_OF_ROW1----------------------------------------------------
-  tree_comp_8bit compare_01 (.x_i(compare_pixels[0]), .y_i(compare_pixels[1]), .ge_o(ge_01));
-  tree_comp_8bit compare_12 (.x_i(compare_pixels[1]), .y_i(compare_pixels[2]), .ge_o(ge_12));
-  tree_comp_8bit compare_20 (.x_i(compare_pixels[2]), .y_i(compare_pixels[0]), .ge_o(ge_20));
+  tree_comp_8bit compare_01 (.x_i(i_compare_pixels[0]), .y_i(i_compare_pixels[1]), .ge_o(ge_01));
+  tree_comp_8bit compare_12 (.x_i(i_compare_pixels[1]), .y_i(i_compare_pixels[2]), .ge_o(ge_12));
+  tree_comp_8bit compare_20 (.x_i(i_compare_pixels[2]), .y_i(i_compare_pixels[0]), .ge_o(ge_20));
   //------------MUXING_FOR_COMPARING--------------------------------------------------------------------
   always_comb begin : compare_row1
     min_r1_sel = {{ge_12 &  ~ge_20}, {ge_01 & ~ge_12}};
     max_r1_sel = {{~ge_01 & ~ge_12},{~ge_01 & ge_12}};
     case (min_r1_sel)
-      2'b00:   min_o[0] = compare_pixels[0]; 
-      2'b01:   min_o[0] = compare_pixels[1]; 
-      2'b10:   min_o[0] = compare_pixels[2]; 
-      default: min_o[0] = 8'b0;
+      2'b00:   o_min[0] = i_compare_pixels[0]; 
+      2'b01:   o_min[0] = i_compare_pixels[1]; 
+      2'b10:   o_min[0] = i_compare_pixels[2]; 
+      default: o_min[0] = 8'b0;
     endcase
     case (max_r1_sel)
-      2'b00:   max_o[0] = compare_pixels[0]; 
-      2'b01:   max_o[0] = compare_pixels[1]; 
-      2'b10:   max_o[0] = compare_pixels[2]; 
-      default: max_o[0] = 8'b0;
+      2'b00:   o_max[0] = i_compare_pixels[0]; 
+      2'b01:   o_max[0] = i_compare_pixels[1]; 
+      2'b10:   o_max[0] = i_compare_pixels[2]; 
+      default: o_max[0] = 8'b0;
     endcase
     if (~(ge_01 ^ ge_20)) begin
-      med_o[0] = compare_pixels[0];
+      o_med[0] = i_compare_pixels[0];
     end else if (~(ge_01 ^ ge_12)) begin
-      med_o[0] = compare_pixels[1];
+      o_med[0] = i_compare_pixels[1];
     end else begin
-      med_o[0] = compare_pixels[2];
+      o_med[0] = i_compare_pixels[2];
     end
   end
   //------------------FINDING_MAX_MIN_MEDIAN_OF_ROW2----------------------------------------------------
-  tree_comp_8bit compare_34 (.x_i(compare_pixels[3]), .y_i(compare_pixels[4]), .ge_o(ge_34));
-  tree_comp_8bit compare_45 (.x_i(compare_pixels[4]), .y_i(compare_pixels[5]), .ge_o(ge_45));
-  tree_comp_8bit compare_53 (.x_i(compare_pixels[5]), .y_i(compare_pixels[3]), .ge_o(ge_53));
+  tree_comp_8bit compare_34 (.x_i(i_compare_pixels[3]), .y_i(i_compare_pixels[4]), .ge_o(ge_34));
+  tree_comp_8bit compare_45 (.x_i(i_compare_pixels[4]), .y_i(i_compare_pixels[5]), .ge_o(ge_45));
+  tree_comp_8bit compare_53 (.x_i(i_compare_pixels[5]), .y_i(i_compare_pixels[3]), .ge_o(ge_53));
   //------------MUXING_FOR_COMPARING--------------------------------------------------------------------
   always_comb begin : compare_row2
     min_r2_sel = {{ge_45 &  ~ge_53}, {ge_34 & ~ge_45}};
     max_r2_sel = {{~ge_34 & ~ge_45},{~ge_34 & ge_45}};
     case (min_r2_sel)
-      2'b00:   min_o[1] = compare_pixels[3]; 
-      2'b01:   min_o[1] = compare_pixels[4]; 
-      2'b10:   min_o[1] = compare_pixels[5]; 
-      default: min_o[1] = 8'b0;
+      2'b00:   o_min[1] = i_compare_pixels[3]; 
+      2'b01:   o_min[1] = i_compare_pixels[4]; 
+      2'b10:   o_min[1] = i_compare_pixels[5]; 
+      default: o_min[1] = 8'b0;
     endcase
     case (max_r2_sel)
-      2'b00:   max_o[1] = compare_pixels[3]; 
-      2'b01:   max_o[1] = compare_pixels[4]; 
-      2'b10:   max_o[1] = compare_pixels[5]; 
-      default: max_o[1] = 8'b0;
+      2'b00:   o_max[1] = i_compare_pixels[3]; 
+      2'b01:   o_max[1] = i_compare_pixels[4]; 
+      2'b10:   o_max[1] = i_compare_pixels[5]; 
+      default: o_max[1] = 8'b0;
    endcase
    if (~(ge_34 ^ ge_53)) begin
-     med_o[1] = compare_pixels[3];
+     o_med[1] = i_compare_pixels[3];
    end else if (~(ge_34 ^ ge_45)) begin
-     med_o[1] = compare_pixels[4];
+     o_med[1] = i_compare_pixels[4];
    end else begin
-     med_o[1] = compare_pixels[5];
+     o_med[1] = i_compare_pixels[5];
    end
   end
   //------------------FINDING_MAX_MIN_MEDIAN_OF_ROW3----------------------------------------------------
-  tree_comp_8bit compare_67 (.x_i(compare_pixels[6]), .y_i(compare_pixels[7]), .ge_o(ge_67));
-  tree_comp_8bit compare_78 (.x_i(compare_pixels[7]), .y_i(compare_pixels[8]), .ge_o(ge_78));
-  tree_comp_8bit compare_86 (.x_i(compare_pixels[8]), .y_i(compare_pixels[6]), .ge_o(ge_86));
+  tree_comp_8bit compare_67 (.x_i(i_compare_pixels[6]), .y_i(i_compare_pixels[7]), .ge_o(ge_67));
+  tree_comp_8bit compare_78 (.x_i(i_compare_pixels[7]), .y_i(i_compare_pixels[8]), .ge_o(ge_78));
+  tree_comp_8bit compare_86 (.x_i(i_compare_pixels[8]), .y_i(i_compare_pixels[6]), .ge_o(ge_86));
   //------------MUXING_FOR_COMPARING--------------------------------------------------------------------
   always_comb begin : compare_row3
     min_r3_sel = {{ge_78 &  ~ge_86}, {ge_67 & ~ge_78}};
     max_r3_sel = {{~ge_67 & ~ge_78},{~ge_67 & ge_78}};
     case (min_r3_sel)
-      2'b00:   min_o[2] = compare_pixels[6]; 
-      2'b01:   min_o[2] = compare_pixels[7]; 
-      2'b10:   min_o[2] = compare_pixels[8]; 
-      default: min_o[2] = 8'b0;
+      2'b00:   o_min[2] = i_compare_pixels[6]; 
+      2'b01:   o_min[2] = i_compare_pixels[7]; 
+      2'b10:   o_min[2] = i_compare_pixels[8]; 
+      default: o_min[2] = 8'b0;
     endcase
     case (max_r3_sel)
-      2'b00:   max_o[2] = compare_pixels[6]; 
-      2'b01:   max_o[2] = compare_pixels[7]; 
-      2'b10:   max_o[2] = compare_pixels[8]; 
-      default: max_o[2] = 8'b0;
+      2'b00:   o_max[2] = i_compare_pixels[6]; 
+      2'b01:   o_max[2] = i_compare_pixels[7]; 
+      2'b10:   o_max[2] = i_compare_pixels[8]; 
+      default: o_max[2] = 8'b0;
     endcase
     if (~(ge_67 ^ ge_86)) begin
-      med_o[2] = compare_pixels[6];
+      o_med[2] = i_compare_pixels[6];
     end else if (~(ge_67 ^ ge_78)) begin
-      med_o[2] = compare_pixels[7];
+      o_med[2] = i_compare_pixels[7];
     end else begin
-      med_o[2] = compare_pixels[8];
+      o_med[2] = i_compare_pixels[8];
     end
   end
 endmodule

@@ -72,8 +72,8 @@ package package_param;
   } stage2_lut;
 //==================DIVISION_STRUCT==================
   typedef struct packed {
-    logic [13:0] remain_o4;
-    logic [13:0] den_i;
-    logic [7:0] quoti_o4;
+    logic [13:0] o_remain4;
+    logic [12:0] i_den;
+    logic [7:0]  o_quoti4;
   } next_div_stage;
 endpackage

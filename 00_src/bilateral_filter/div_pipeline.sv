@@ -6,73 +6,72 @@
 // Create date     : 15/09/2026
 // Updated date    : 15/09/2026
 //=============================================================================================================
+import package_param::*;
 module div_pipeline #(
   parameter WIDTH_PIXEL = 8,      
   parameter WIDTH_DEN   = 13,
   parameter WIDTH_OUT   = 8,
-  localparam WIDTH_REM  = WIDTH_DEN + 1 
+  parameter WIDTH_REM   = 14
 )(
   input  logic                 i_clk,
   input  logic                 ni_rst,
-  input  logic                 ready_i,
-  input  logic [WIDTH_REM-1:0] rem_i,     
-  input  logic [WIDTH_OUT-1:0] quoti_i,   
-  input  logic [WIDTH_DEN-1:0] den_i,     
-  output logic                 valid_o,
-  output logic [WIDTH_REM-1:0] remain_o,  
-  output logic [WIDTH_OUT-1:0] quoti_o    
+  input  logic                 i_ready,
+  input  logic                 i_valid,
+  input  logic [WIDTH_REM-1:0] i_rem,     
+  input  logic [WIDTH_OUT-1:0] i_quoti,   
+  input  logic [WIDTH_DEN-1:0] i_den,     
+  output logic                 o_valid,
+  output logic [WIDTH_REM-1:0] o_remain,  
+  output logic [WIDTH_OUT-1:0] o_quoti    
 );
 //==============DECLARATION==============================================
-  logic [WIDTH_REM-1:0] remain_o0, remain_o1, remain_o2, remain_o3,
-                        remain_o4, remain_o5, remain_o6, remain_o7;
-  logic [WIDTH_OUT-1:0] quoti_o0, quoti_o1, quoti_o2, quoti_o3,
-                        quoti_o4, quoti_o5, quoti_o6, quoti_o7;
-  //----------------pipeline--------------------------------
+  logic [WIDTH_REM-1:0] o_remain0, o_remain1, o_remain2, o_remain3,
+                        o_remain4, o_remain5, o_remain6, o_remain7;
+  logic [WIDTH_OUT-1:0] o_quoti0, o_quoti1, o_quoti2, o_quoti3,
+                        o_quoti4, o_quoti5, o_quoti6, o_quoti7;
+  //----------------pipeline-------------------------------------
   next_div_stage stage1_reg, stage1_next;
   logic          valid_stage1_reg;
-//==============INSTANTIATION============================================
+//==============INSTANTIATION=========================================================
   non_res_div #(
-    .WIDTH_DEN(13), .WIDTH_OUT(WIDTH_PIXEL)
-  ) div0 (.rem_i(rem_i), .quoti_i(quoti_i), .den_i(den_i), .remain_o(remain_o0), .quoti_o(quoti_o0));
+    .WIDTH_DEN(13), .WIDTH_OUT(WIDTH_PIXEL), .WIDTH_REM(WIDTH_REM)
+  ) div0 (.i_rem(i_rem), .i_quoti(i_quoti), .i_den(i_den), .o_remain(o_remain0), .o_quoti(o_quoti0));
   non_res_div #(
-    .WIDTH_DEN(13), .WIDTH_OUT(WIDTH_PIXEL)
-  ) div1 (.rem_i(remain_o0), .quoti_i(quoti_o0), .den_i(den_i), .remain_o(remain_o1), .quoti_o(quoti_o1));
+    .WIDTH_DEN(13), .WIDTH_OUT(WIDTH_PIXEL), .WIDTH_REM(WIDTH_REM)
+  ) div1 (.i_rem(o_remain0), .i_quoti(o_quoti0), .i_den(i_den), .o_remain(o_remain1), .o_quoti(o_quoti1));
   non_res_div #(
-    .WIDTH_DEN(13), .WIDTH_OUT(WIDTH_PIXEL)
-  ) div2 (.rem_i(remain_o1), .quoti_i(quoti_o1), .den_i(den_i), .remain_o(remain_o2), .quoti_o(quoti_o2));
+    .WIDTH_DEN(13), .WIDTH_OUT(WIDTH_PIXEL), .WIDTH_REM(WIDTH_REM)
+  ) div2 (.i_rem(o_remain1), .i_quoti(o_quoti1), .i_den(i_den), .o_remain(o_remain2), .o_quoti(o_quoti2));
   non_res_div #(
-    .WIDTH_DEN(13), .WIDTH_OUT(WIDTH_PIXEL)
-  ) div3 (.rem_i(remain_o2), .quoti_i(quoti_o2), .den_i(den_i), .remain_o(remain_o3), .quoti_o(quoti_o3));
+    .WIDTH_DEN(13), .WIDTH_OUT(WIDTH_PIXEL), .WIDTH_REM(WIDTH_REM)
+  ) div3 (.i_rem(o_remain2), .i_quoti(o_quoti2), .i_den(i_den), .o_remain(o_remain3), .o_quoti(o_quoti3));
   non_res_div #(
-    .WIDTH_DEN(13), .WIDTH_OUT(WIDTH_PIXEL)
-  ) div4 (.rem_i(remain_o3), .quoti_i(quoti_o3), .den_i(den_i), .remain_o(remain_o4), .quoti_o(quoti_o4)); 
+    .WIDTH_DEN(13), .WIDTH_OUT(WIDTH_PIXEL), .WIDTH_REM(WIDTH_REM)
+  ) div4 (.i_rem(o_remain3), .i_quoti(o_quoti3), .i_den(i_den), .o_remain(o_remain4), .o_quoti(o_quoti4)); 
 //========================PIPELINE_STAGE_1================================================
   always_comb begin
-    stage1_next.remain_o4 = remain_o4;
-    stage1_next.den_i     = den_i;
-    stage1_next.quoti_o4  = quoti_o4;
+    stage1_next.o_remain4 = o_remain4;
+    stage1_next.i_den     = i_den;
+    stage1_next.o_quoti4  = o_quoti4;
   end
   always_ff @(posedge i_clk) begin : stage1_register
     if(~ni_rst) begin
       stage1_reg       <= '0;
       valid_stage1_reg <= 1'b0;
-    end else begin
-      if (ready_i) begin
+    end else if (i_ready) begin
         stage1_reg <= stage1_next;
-      end
-      valid_stage1_reg <= ready_i; 
+        valid_stage1_reg <= i_valid; 
     end
   end
-  assign valid_o = valid_stage1_reg;
+  assign o_valid = valid_stage1_reg;
 //================NEXT_4_DIV==============================================================
   non_res_div #(
-    .WIDTH_DEN(13), .WIDTH_OUT(WIDTH_PIXEL)
-  ) div5 (.rem_i(stage1_reg.remain_o4), .quoti_i(stage1_reg.quoti_o4), .den_i(stage1_reg.den_i), .remain_o(remain_o5), .quoti_o(quoti_o5));
-
+    .WIDTH_DEN(13), .WIDTH_OUT(WIDTH_PIXEL), .WIDTH_REM(WIDTH_REM)
+  ) div5 (.i_rem(stage1_reg.o_remain4), .i_quoti(stage1_reg.o_quoti4), .i_den(stage1_reg.i_den), .o_remain(o_remain5), .o_quoti(o_quoti5));
   non_res_div #(
-    .WIDTH_DEN(13), .WIDTH_OUT(WIDTH_PIXEL)
-  ) div6 (.rem_i(remain_o5), .quoti_i(quoti_o5), .den_i(stage1_reg.den_i), .remain_o(remain_o6), .quoti_o(quoti_o6));
+    .WIDTH_DEN(13), .WIDTH_OUT(WIDTH_PIXEL), .WIDTH_REM(WIDTH_REM)
+  ) div6 (.i_rem(o_remain5), .i_quoti(o_quoti5), .i_den(stage1_reg.i_den), .o_remain(o_remain6), .o_quoti(o_quoti6));
   non_res_div #(
-    .WIDTH_DEN(13), .WIDTH_OUT(WIDTH_PIXEL)
-  ) div7 (.rem_i(remain_o6), .quoti_i(quoti_o6), .den_i(stage1_reg.den_i), .remain_o(remain_o), .quoti_o(quoti_o));
+    .WIDTH_DEN(13), .WIDTH_OUT(WIDTH_PIXEL), .WIDTH_REM(WIDTH_REM)
+  ) div7 (.i_rem(o_remain6), .i_quoti(o_quoti6), .i_den(stage1_reg.i_den), .o_remain(o_remain), .o_quoti(o_quoti));
 endmodule

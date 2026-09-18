@@ -16,8 +16,8 @@ module subblock_noise_reduction #(
   input  logic                   ni_rst,
   input  logic                   i_ready,
   input  logic [WIDTH_PIXEL-1:0] threshold_i,
-  input  logic [WIDTH_PIXEL-1:0] pix_i,
-  output logic                   valid_o
+  input  logic [WIDTH_PIXEL-1:0] i_pix,
+  output logic                   valid_o,
   output logic [WIDTH_PIXEL-1:0] pix_filt_o
 );
   logic                   sm_valid_w;
@@ -32,16 +32,14 @@ module subblock_noise_reduction #(
     .i_clk        (i_clk),
     .ni_rst       (ni_rst),
     .i_ready      (i_ready),
-    .threshold_i  (threshold_i),
-    .pix_i        (pix_i),
-    .valid_o      (sm_valid_w),
+    .i_threshold  (threshold_i),
+    .i_pix        (i_pix),
+    .o_valid      (sm_valid_w),
     .o_pix_median (sm_pix_w)
   );
-
   // Điều khiển nhịp: Bilateral Filter chỉ được phép "nuốt" dữ liệu (shift pipeline) 
   // khi hệ thống đang ready VÀ bộ Median đã tính xong pixel hợp lệ.
   assign bf_ready_w = i_ready & sm_valid_w;
-
   bilateral_filter #(
     .WIDTH_PIXEL(WIDTH_PIXEL),
     .WIDTH      (WIDTH),
@@ -50,9 +48,8 @@ module subblock_noise_reduction #(
     .i_clk          (i_clk),
     .ni_rst         (ni_rst),
     .i_ready        (bf_ready_w),
-    .pix_i          (sm_pix_w),
+    .i_pix          (sm_pix_w),
     .filter_valid_o (valid_o),
     .o_pix_filter   (pix_filt_o)
   );
-
 endmodule

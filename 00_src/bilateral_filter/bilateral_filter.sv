@@ -74,12 +74,12 @@ module bilateral_filter #(
 //========================PIPELINE CONTROL========================================================================
   always_ff @(posedge i_clk ) begin : valid_tracking_register
     if (~ni_rst) begin
-      valid_shift_reg <= 3'b0;
+      valid_shift_reg <= 4'b0;
     end else if (i_ready) begin
-      valid_shift_reg <= {valid_shift_reg[1:0], compute_start}; 
+      valid_shift_reg <= {valid_shift_reg[2:0], compute_start}; 
     end
   end
-  assign o_valid = valid_shift_reg[2];
+  assign o_valid = valid_shift_reg[3];
   //========================STAGE 1:ABS=======================================================
   always_comb begin : stage1_comb
     //-------------INTENSITY_DIFFERENCE------------------------
@@ -169,28 +169,31 @@ module bilateral_filter #(
   .GUARD_BIT(4),
   .WIDTH_MUL(17)
   ) mac_bilateral (
-    .i_clk(i_clk),
-    .ni_rst(ni_rst),
-    .mac_en_i(valid_shift_reg[1]),
-    .px_i(stage2_reg.pre_px),
-    .wc_i(mac_wc_array),
-    .mac_valid_o(mac_valid_o),
-    .mac_num_out(mac_num_out),
-    .mac_den_out(mac_den_out)
+    .i_clk      (i_clk),
+    .ni_rst     (ni_rst),
+    .i_mac_en   (valid_shift_reg[1]),
+    .i_px       (stage2_reg.pre_px),
+    .i_wc       (mac_wc_array),
+    .o_mac_valid(mac_valid_o),
+    .o_mac_num_out(mac_num_out),
+    .o_mac_den_out(mac_den_out)
   );
 //========================STAGE 3:DIVISION=======================================================
   div_pipeline #(
     .WIDTH_DEN(13),
-    .WIDTH_OUT(WIDTH_PIXEL)
+    .WIDTH_PIXEL(WIDTH_PIXEL),
+    .WIDTH_OUT(WIDTH_PIXEL),
+    .WIDTH_REM(14)
   ) div_out (
-    .i_clk(i_clk),
-    .ni_rst(ni_rst),
-    .ready_i(mac_valid_o),
-    .rem_i({1'b0, mac_num_out[20:8]}), 
-    .quoti_i(mac_num_out[7:0]), 
-    .den_i(mac_den_out), 
-    .valid_o(filter_valid_o), 
-    .remain_o(remain_o), 
-    .quoti_o(o_pix_filter)
+    .i_clk   (i_clk),
+    .ni_rst  (ni_rst),
+    .i_ready (valid_shift_reg[2]),
+    .i_valid (mac_valid_o),
+    .i_rem   ({1'b0, mac_num_out[20:8]}), 
+    .i_quoti (mac_num_out[7:0]), 
+    .i_den   (mac_den_out), 
+    .o_valid (filter_valid_o), 
+    .o_remain(remain_o), 
+    .o_quoti (o_pix_filter)
   );
 endmodule

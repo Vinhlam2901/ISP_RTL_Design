@@ -11,29 +11,29 @@ module mul_bilateral #(
 	parameter WIDTH_WC  = 9,
 	parameter WIDTH_MUL = 17
 )(
-	input  logic [WIDTH_PX-1:0]  px_i,
-	input  logic [WIDTH_WC-1:0]  wc_i,
-	output logic [WIDTH_MUL-1:0] mul_o
+	input  logic [WIDTH_PX-1:0]  i_px,
+	input  logic [WIDTH_WC-1:0]  i_wc,
+	output logic [WIDTH_MUL-1:0] o_mul
 );
 //===========================DECLARATION=======================================
-	logic                                   cout_o;
-  logic [WIDTH_MUL-1:0]                   neg_vector;
-	logic [(WIDTH_WC/2)-1:0][WIDTH_PX+1:0]  pp_o;
-  logic [(WIDTH_WC/2)-1:0][WIDTH_MUL-1:0] concat_pp;
-	logic [(WIDTH_WC/2)-1:0]                neg_o;
-	logic [WIDTH_MUL-1:0]                   sum_partial;
-	logic [WIDTH_MUL-1:0]                   carry_partial;
-  logic [WIDTH_MUL-1:0]                   sum1, carry1;
-  logic [WIDTH_MUL-1:0]                   sum2, carry2;
-  logic [WIDTH_MUL-1:0]                   sum3, carry3;
-  logic [WIDTH_MUL-1:0]                   sum4, carry4;
+	logic                                        cout_o;
+  logic [WIDTH_MUL-1:0]                        neg_vector;
+	logic [((WIDTH_WC+1)/2)-1:0][WIDTH_PX+1:0]   pp_o;
+  logic [((WIDTH_WC+1)/2)-1:0][WIDTH_MUL-1:0]  concat_pp;
+	logic [((WIDTH_WC+1)/2)-1:0]                 neg_o;
+	logic                        [WIDTH_MUL-1:0] sum_partial;
+	logic                        [WIDTH_MUL-1:0] carry_partial;
+  logic                        [WIDTH_MUL-1:0] sum1, carry1;
+  logic                        [WIDTH_MUL-1:0] sum2, carry2;
+  logic                        [WIDTH_MUL-1:0] sum3, carry3;
+  logic                        [WIDTH_MUL-1:0] sum4, carry4;
 //===========================INSTANTIATION=======================================
   booth_encoder #(
     .WIDTH_PX(WIDTH_PX),
     .WIDTH_WC(WIDTH_WC+1)
   ) booth_encoder (
-    .opa_i(px_i),
-    .opb_i({1'b0, wc_i}),
+    .opa_i(i_px),
+    .opb_i({1'b0, i_wc}),
 		.neg_o(neg_o),
 		.pp_o(pp_o)
 	);
@@ -80,7 +80,7 @@ module mul_bilateral #(
     .b_i     ({carry4[15:0], 1'b0}),
     .cin_i   (1'b0),
     .cout_o  (cout_o),
-    .result_o(mul_o)
+    .result_o(o_mul)
   );
 
 endmodule
