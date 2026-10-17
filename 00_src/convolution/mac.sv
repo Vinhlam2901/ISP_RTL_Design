@@ -22,15 +22,15 @@ module mac #(
   output logic [(WIDTH_MAC+GUARD_BIT)-1:0] mac_out
 );
 //========================DECLARATION========================================================================================
-  package_param::mul_add_stage    mul_add_reg,    mul_add_next;     
-  package_param::add_add_stage    add_add_reg,    add_add_next;     
-  package_param::add_accum_stage  add_accum_reg,  add_accum_next;
-  logic [3:0]                            valid_shift_reg;
-  logic [8:0][WIDTH_MAC-1:0]             mul_result;
-  logic [8:0][(WIDTH_MAC+GUARD_BIT)-1:0] op_mul;
-  logic [7:0][(WIDTH_MAC+GUARD_BIT)-1:0] add_accum;
+  package_param::MUL_ADD_STAGE    mul_add_reg,    mul_add_next;     
+  package_param::ADD_ADD_STAGE    add_add_reg,    add_add_next;     
+  package_param::ADD_ACCUM_STAGE  add_accum_reg,  add_accum_next;
+  logic [3:0]                              valid_shift_reg;
+  logic [8:0][WIDTH_MAC-1:0]               mul_result;
+  logic [8:0][((WIDTH_MAC+GUARD_BIT)-1):0] op_mul;
+  logic [7:0][((WIDTH_MAC+GUARD_BIT)-1):0] add_accum;
 //========================PIPELINE CONTROL====================================================================================
-  always_ff @(posedge i_clk or negedge ni_rst) begin : valid_tracking_register
+  always_ff @(posedge i_clk) begin : valid_tracking_register
     if (~ni_rst) begin
       valid_shift_reg <= 4'b0;
     end else begin
@@ -54,7 +54,7 @@ module mac #(
   always_comb begin: mul_stage
     mul_add_next.op_mul = op_mul;
   end
-  always_ff @(posedge i_clk or negedge ni_rst) begin : mul_add_register
+  always_ff @(posedge i_clk) begin : mul_add_register
     if(~ni_rst) begin
       mul_add_reg.op_mul <= '0;
     // Tầng 1: Sử dụng tín hiệu Enable ngõ vào làm cờ Clock Enable
@@ -63,15 +63,15 @@ module mac #(
     end
   end
 //========================STAGE 2: ADDER LEVEL 1========================================================================================
-  cla_adder_16bit adder0 (.a_i(mul_add_reg.op_mul[0]),.b_i(mul_add_reg.op_mul[1]),.cin_i(1'b0),.result_o(add_accum[0]),.cout_o());
-  cla_adder_16bit adder1 (.a_i(mul_add_reg.op_mul[2]),.b_i(mul_add_reg.op_mul[3]),.cin_i(1'b0),.result_o(add_accum[1]),.cout_o());
-  cla_adder_16bit adder2 (.a_i(mul_add_reg.op_mul[4]),.b_i(mul_add_reg.op_mul[5]),.cin_i(1'b0),.result_o(add_accum[2]),.cout_o());
-  cla_adder_16bit adder3 (.a_i(mul_add_reg.op_mul[6]),.b_i(mul_add_reg.op_mul[7]),.cin_i(1'b0),.result_o(add_accum[3]),.cout_o());
+  cla_adder_16bit adder0 (.a_i(mul_add_reg.op_mul[0]),.b_i(mul_add_reg.op_mul[1]),.cin_i(1'b0),.result_o(add_accum[0][15:0]),.cout_o());
+  cla_adder_16bit adder1 (.a_i(mul_add_reg.op_mul[2]),.b_i(mul_add_reg.op_mul[3]),.cin_i(1'b0),.result_o(add_accum[1][15:0]),.cout_o());
+  cla_adder_16bit adder2 (.a_i(mul_add_reg.op_mul[4]),.b_i(mul_add_reg.op_mul[5]),.cin_i(1'b0),.result_o(add_accum[2][15:0]),.cout_o());
+  cla_adder_16bit adder3 (.a_i(mul_add_reg.op_mul[6]),.b_i(mul_add_reg.op_mul[7]),.cin_i(1'b0),.result_o(add_accum[3][15:0]),.cout_o());
   always_comb begin: add_stage
     add_add_next.add_out       = add_accum[3:0];
     add_add_next.op_mul8_delay = mul_add_reg.op_mul[8];
   end
-  always_ff @(posedge i_clk or negedge ni_rst) begin : add_add_register
+  always_ff @(posedge i_clk) begin : add_add_register
     if(~ni_rst) begin
       add_add_reg <= '0;
     // Tầng 2: Sử dụng cờ Valid của tầng trước làm Clock Enable
@@ -80,14 +80,14 @@ module mac #(
     end
   end
 //========================STAGE 3: ACCUMULATOR=============================================================================================
-  cla_adder_16bit adder4 (.a_i(add_add_reg.add_out[0]), .b_i(add_add_reg.add_out[1]), .cin_i(1'b0), .result_o(add_accum[4]), .cout_o());
-  cla_adder_16bit adder5 (.a_i(add_add_reg.add_out[2]), .b_i(add_add_reg.add_out[3]), .cin_i(1'b0), .result_o(add_accum[5]), .cout_o());  
+  cla_adder_16bit adder4 (.a_i(add_add_reg.add_out[0]), .b_i(add_add_reg.add_out[1]), .cin_i(1'b0), .result_o(add_accum[4][15:0]), .cout_o());
+  cla_adder_16bit adder5 (.a_i(add_add_reg.add_out[2]), .b_i(add_add_reg.add_out[3]), .cin_i(1'b0), .result_o(add_accum[5][15:0]), .cout_o());  
   always_comb begin: add_accum_stage
     add_accum_next.add_final[0]    = add_accum[4];
     add_accum_next.add_final[1]    = add_accum[5];
     add_accum_next.op_mul8_delay = add_add_reg.op_mul8_delay;
   end
-  always_ff @(posedge i_clk or negedge ni_rst) begin : add_accum_register
+  always_ff @(posedge i_clk) begin : add_accum_register
     if(~ni_rst) begin
       add_accum_reg <= '0;
     end else if (valid_shift_reg[1]) begin
@@ -95,9 +95,9 @@ module mac #(
     end
   end  
 //========================STAGE 4: FINAL RESULT========================
-  cla_adder_16bit adder6 (.a_i(add_accum_reg.add_final[0]), .b_i(add_accum_reg.add_final[1]), .cin_i(1'b0), .result_o(add_accum[6]), .cout_o());
-  cla_adder_16bit adder7 (.a_i(add_accum_reg.op_mul8_delay), .b_i(add_accum[6]), .cin_i(1'b0), .result_o(add_accum[7]), .cout_o());
-  always_ff @(posedge i_clk or negedge ni_rst) begin : final_out_register
+  cla_adder_16bit adder6 (.a_i(add_accum_reg.add_final[0]), .b_i(add_accum_reg.add_final[1]), .cin_i(1'b0), .result_o(add_accum[6][15:0]), .cout_o());
+  cla_adder_16bit adder7 (.a_i(add_accum_reg.op_mul8_delay), .b_i(add_accum[6][15:0]), .cin_i(1'b0), .result_o(add_accum[7][15:0]), .cout_o());
+  always_ff @(posedge i_clk) begin : final_out_register
     if (~ni_rst) begin
       mac_out <= '0;
     end else if (valid_shift_reg[2]) begin

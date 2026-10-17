@@ -8,29 +8,28 @@
 //============================================================================================================
 module cla_carry_unit_2bit (
 	input  logic [1:0] p_i,
-	input  logic [1:0] g_ni,
+	input  logic [1:0] g_i,
 	input  logic       cin_i,
 	output logic [1:0] cin_out,
 	output logic       p_o,
-	output logic       g_no
+	output logic       g_o
 );
 //==================DECLARATION=======================================================================
 	logic [1:0] cin_temp;
 //==================CARRY=============================================================================
-	// c[i] = ~(g_n[i] & ~(p[i]cin)
+	// c[i] = g[i] || (p[i]cin)
 	always_comb begin : carry_calc
 		//--------------------cin[0]---------------------------------------------------------
-		cin_temp[0] = ~(g_ni[0] & ~(p_i[0] & cin_i) );
+		cin_temp[0] = g_i[0] || (p_i[0] && cin_i);
 		//--------------------cin[1]---------------------------------------------------------
-		cin_temp[1] = ~(g_ni[1] & ~(p_i[1]          & ~g_ni[0]) 
-													  & ~(p_i[1] & p_i[0] & cin_i)  );		 											 
+		cin_temp[1] = g_i[1] || (p_i[1] && g_i[0]) || (p_i[1] && p_i[0] && cin_i);		 											 
 	end
   always_comb begin : boundary_gating
     cin_out = cin_temp;
   end
 	// p_o = p[n-1].p[n-2].p_n[n]
 	always_comb begin : prog_gen_out
-		p_o  = &p_i;
-		g_no = g_ni[1] & ~(p_i[1] & ~g_ni[0]);
+		p_o = &p_i;
+		g_o = g_i[1] || (p_i[1] & g_i[0]);
 	end
 endmodule

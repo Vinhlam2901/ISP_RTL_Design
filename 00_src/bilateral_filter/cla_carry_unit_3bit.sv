@@ -36,7 +36,6 @@ module cla_carry_unit_3bit (
 	// p_o = p[n-1].p[n-2].p_n[n]
 	always_comb begin : prog_gen_out
 		p_o  = &p_i;
-		g_no = ~g_ni[2] & ~(p_i[2] &          ~g_ni[1]) 
-									  & ~(p_i[2] & p_i[1] & ~g_ni[0]);
+		g_no = g_ni[2] & ~(p_i[2] & ~g_ni[1]) & ~(p_i[2] & p_i[1] & ~g_ni[0]);
 	end
 endmodule

@@ -29,8 +29,8 @@ module median_cal #(
   logic      [WIDTH_PIXEL-1:0] stage3_comb_median;
   //----------------pipeline_registers--------------------------
   logic [2:0]                  valid_shift_reg;
-  stage1_cal_stage             stage1_reg, stage1_next;
-  stage2_cal_stage             stage2_reg, stage2_next;
+  STAGE1_CAL_STAGE             stage1_reg, stage1_next;
+  STAGE2_CAL_STAGE             stage2_reg, stage2_next;
 //========================PIPELINE CONTROL=====================================================================
   always_ff @(posedge i_clk or negedge ni_rst) begin : valid_tracking
     if (~ni_rst) begin

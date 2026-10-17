@@ -44,12 +44,12 @@ module conv_post_processing #(
       mac_scaled = mac_abs;
     end
     if (mac_valid) begin                    // saturation
-      if (^mac_scaled === 1'bx) begin
-        o_conv = 8'd0;
-      end else if (mac_scaled > 20'd255) begin
+      if (mac_scaled > 20'd255) begin
         o_conv = 8'd255;
-      end else begin
+      end else if (mac_scaled < 20'd255) begin
         o_conv = mac_scaled[7:0];
+      end else begin
+        o_conv = 8'd0;
       end
     end else begin
       o_conv = 8'd0;

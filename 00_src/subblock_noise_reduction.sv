@@ -1,11 +1,3 @@
-//=============================================================================================================
-// Project         : ISP Sub-block Noise Reduction
-// Module          : ISP Sub-block Noise Reduction
-// File            : subblock_noise_reduction.sv
-// Author          : Chau Tran Vinh Lam - vinhlamchautran572@gmail.com
-// Create date     : 09/09/2026
-// Updated date    : 15/09/2026
-//=============================================================================================================
 import package_param::*;
 module subblock_noise_reduction #(
   parameter WIDTH_PIXEL = 8,      // 8bit for 1 pixel

@@ -35,9 +35,9 @@ module switching_median #(
   logic [WIDTH_PIXEL-1:0] min_vh, min_lr, min_dev;
   //----------------pipeline--------------------------------
   logic            [2:0]  valid_shift_reg; 
-  stage1_dev_stage        stage1_reg, stage1_next;
-  stage2_min_stage        stage2_reg, stage2_next;
-  stage3_dec_stage        stage3_reg, stage3_next;
+  STAGE1_DEV_STAGE        stage1_reg, stage1_next;
+  STAGE2_MIN_STAGE        stage2_reg, stage2_next;
+  STAGE3_DEC_STAGE        stage3_reg, stage3_next;
   //==============INSTANTIATION WINDOW GENERATOR====================================================================
   window_generator_3x3 #(
     .WIDTH_PIXEL(WIDTH_PIXEL),
@@ -156,7 +156,7 @@ module switching_median #(
     .y_i (i_threshold), 
     .ge_o(ge_threshold)
   );
-  assign is_noise = ge_threshold ? 1'b1 : 1'b0;
+  assign is_noise = ge_threshold;
   always_comb begin : stage3_comb
     stage3_next.noise_flag = is_noise;
     stage3_next.center_px  = stage2_reg.center_px;

@@ -23,6 +23,7 @@ module convolution #(
 );
 	//==============DECLARATION=======================================================================================
   logic                                    mac_enb;
+  logic                                    compare_start;
   logic                                    mac_valid; 
 	logic [WIDTH_PIXEL:0][7:0]               mac_pixels;
 	logic [WIDTH_PIXEL-1:0]                  window_00, window_01, window_02;	// row 0
@@ -61,7 +62,7 @@ module convolution #(
   ) mac (
 		.i_clk      (i_clk),
 		.ni_rst     (ni_rst),
-		.mac_en_i   (mac_enb),
+		.mac_en_i   (compare_start),
 		.opa_i      (mac_pixels),
 		.opb_i      (mac_kernel),	
 		.mac_valid_o(mac_valid),

@@ -4,7 +4,7 @@
 // File            : bilateral_filter.sv
 // Author          : Chau Tran Vinh Lam - vinhlamchautran572@gmail.com
 // Create date     : 09/09/2026
-// Updated date    : 15/09/2026
+// Updated date    : 17/10/2026
 //=============================================================================================================
 import package_param::*;
 module bilateral_filter #(
@@ -19,9 +19,10 @@ module bilateral_filter #(
   output logic                   filter_valid_o,
 	output logic [WIDTH_PIXEL-1:0] o_pix_filter
 );
-	//==============DECLARATION=======================================================================================
+//==============DECLARATION=======================================================================================
   logic                        compute_start;
   logic                        mac_valid_o;
+  logic [13:0]                 remain_o;
   //----------------window_pixel--------------------------
 	logic [8:0][WIDTH_PIXEL-1:0] compute_pixels;
   //---------------compute_intensity_difference------------
@@ -40,13 +41,13 @@ module bilateral_filter #(
   logic [8:0]                  wmul_10, wmul_11, wmul_12;
   logic [8:0]                  wmul_20, wmul_21, wmul_22;
   logic [8:0][8:0]             mac_wc_array;
-  logic [20:0]                 mac_num_out;
+  logic [21:0]                 mac_num_out;
   logic [12:0]                 mac_den_out;
   //----------------pipeline--------------------------------
   logic            [3:0]       valid_shift_reg; 
-  stage1_abs                   stage1_reg, stage1_next;
-  stage2_lut                   stage2_reg, stage2_next;
-  //==============INSTANTIATION WINDOW GENERATOR====================================================================
+  STAGE1_ABS                   stage1_reg, stage1_next;
+  STAGE2_LUT                   stage2_reg, stage2_next;
+//==============INSTANTIATION WINDOW GENERATOR====================================================================
   window_generator_3x3 #(
     .WIDTH_PIXEL(WIDTH_PIXEL),
     .WIDTH(WIDTH),
@@ -62,15 +63,14 @@ module bilateral_filter #(
     .window_20      (compute_pixels[6]), .window_21(compute_pixels[7]), .window_22(compute_pixels[8])
   );
 //===========================COMPUTE_INTENSITY_DIFFERENCE==============================================
-  cla_adder_8bit  diff_11_00 (.a_i(compute_pixels[4]),.b_i(~compute_pixels[0]),.cin_i(1'b1),.cout_o(cout_diff[0]),.result_o(diff_center_00));
-  cla_adder_8bit  diff_11_01 (.a_i(compute_pixels[4]),.b_i(~compute_pixels[1]),.cin_i(1'b1),.cout_o(cout_diff[1]),.result_o(diff_center_01));
-  cla_adder_8bit  diff_11_02 (.a_i(compute_pixels[4]),.b_i(~compute_pixels[2]),.cin_i(1'b1),.cout_o(cout_diff[2]),.result_o(diff_center_02));
-  cla_adder_8bit  diff_11_10 (.a_i(compute_pixels[4]),.b_i(~compute_pixels[3]),.cin_i(1'b1),.cout_o(cout_diff[3]),.result_o(diff_center_10));
-  cla_adder_8bit  diff_11_12 (.a_i(compute_pixels[4]),.b_i(~compute_pixels[5]),.cin_i(1'b1),.cout_o(cout_diff[4]),.result_o(diff_center_12));
-  cla_adder_8bit  diff_11_20 (.a_i(compute_pixels[4]),.b_i(~compute_pixels[6]),.cin_i(1'b1),.cout_o(cout_diff[5]),.result_o(diff_center_20));
-  cla_adder_8bit  diff_11_21 (.a_i(compute_pixels[4]),.b_i(~compute_pixels[7]),.cin_i(1'b1),.cout_o(cout_diff[6]),.result_o(diff_center_21));
-  cla_adder_8bit  diff_11_22 (.a_i(compute_pixels[4]),.b_i(~compute_pixels[8]),.cin_i(1'b1),.cout_o(cout_diff[7]),.result_o(diff_center_22));
-
+  cla_adder_8bit diff_11_00 (.a_i(compute_pixels[4]),.b_i(~compute_pixels[0]),.cin_i(1'b1),.cout_o(cout_diff[0]),.result_o(diff_center_00));
+  cla_adder_8bit diff_11_01 (.a_i(compute_pixels[4]),.b_i(~compute_pixels[1]),.cin_i(1'b1),.cout_o(cout_diff[1]),.result_o(diff_center_01));
+  cla_adder_8bit diff_11_02 (.a_i(compute_pixels[4]),.b_i(~compute_pixels[2]),.cin_i(1'b1),.cout_o(cout_diff[2]),.result_o(diff_center_02));
+  cla_adder_8bit diff_11_10 (.a_i(compute_pixels[4]),.b_i(~compute_pixels[3]),.cin_i(1'b1),.cout_o(cout_diff[3]),.result_o(diff_center_10));
+  cla_adder_8bit diff_11_12 (.a_i(compute_pixels[4]),.b_i(~compute_pixels[5]),.cin_i(1'b1),.cout_o(cout_diff[4]),.result_o(diff_center_12));
+  cla_adder_8bit diff_11_20 (.a_i(compute_pixels[4]),.b_i(~compute_pixels[6]),.cin_i(1'b1),.cout_o(cout_diff[5]),.result_o(diff_center_20));
+  cla_adder_8bit diff_11_21 (.a_i(compute_pixels[4]),.b_i(~compute_pixels[7]),.cin_i(1'b1),.cout_o(cout_diff[6]),.result_o(diff_center_21));
+  cla_adder_8bit diff_11_22 (.a_i(compute_pixels[4]),.b_i(~compute_pixels[8]),.cin_i(1'b1),.cout_o(cout_diff[7]),.result_o(diff_center_22));
 //========================PIPELINE CONTROL========================================================================
   always_ff @(posedge i_clk ) begin : valid_tracking_register
     if (~ni_rst) begin
@@ -79,7 +79,7 @@ module bilateral_filter #(
       valid_shift_reg <= {valid_shift_reg[2:0], compute_start}; 
     end
   end
-  assign o_valid = valid_shift_reg[3];
+  // assign o_valid = valid_shift_reg[3];
   //========================STAGE 1:ABS=======================================================
   always_comb begin : stage1_comb
     //-------------INTENSITY_DIFFERENCE------------------------
@@ -96,7 +96,6 @@ module bilateral_filter #(
     stage1_next.pre_px    = compute_pixels;
     stage1_next.cout_diff = cout_diff;
   end
-  
   always_ff @(posedge i_clk) begin : stage1_register
     if(~ni_rst) begin
       stage1_reg <= '0;
@@ -106,14 +105,14 @@ module bilateral_filter #(
   end
   //------------------ABSOLUTE VALUE LOGIC--------------------------------------
   always_comb begin
-    abs_diff_00 = (stage1_reg.cout_diff[0]) ? (~{stage1_reg.cout_diff[0], stage1_reg.diff[0]} + 1'b1) : {stage1_reg.cout_diff[0], stage1_reg.diff[0]};
-    abs_diff_01 = (stage1_reg.cout_diff[1]) ? (~{stage1_reg.cout_diff[1], stage1_reg.diff[1]} + 1'b1) : {stage1_reg.cout_diff[1], stage1_reg.diff[1]};
-    abs_diff_02 = (stage1_reg.cout_diff[2]) ? (~{stage1_reg.cout_diff[2], stage1_reg.diff[2]} + 1'b1) : {stage1_reg.cout_diff[2], stage1_reg.diff[2]};
-    abs_diff_10 = (stage1_reg.cout_diff[3]) ? (~{stage1_reg.cout_diff[3], stage1_reg.diff[3]} + 1'b1) : {stage1_reg.cout_diff[3], stage1_reg.diff[3]};
-    abs_diff_12 = (stage1_reg.cout_diff[4]) ? (~{stage1_reg.cout_diff[4], stage1_reg.diff[4]} + 1'b1) : {stage1_reg.cout_diff[4], stage1_reg.diff[5]};
-    abs_diff_20 = (stage1_reg.cout_diff[5]) ? (~{stage1_reg.cout_diff[5], stage1_reg.diff[6]} + 1'b1) : {stage1_reg.cout_diff[5], stage1_reg.diff[6]};
-    abs_diff_21 = (stage1_reg.cout_diff[6]) ? (~{stage1_reg.cout_diff[6], stage1_reg.diff[7]} + 1'b1) : {stage1_reg.cout_diff[6], stage1_reg.diff[7]};
-    abs_diff_22 = (stage1_reg.cout_diff[7]) ? (~{stage1_reg.cout_diff[7], stage1_reg.diff[8]} + 1'b1) : {stage1_reg.cout_diff[7], stage1_reg.diff[8]};
+    abs_diff_00 = stage1_reg.cout_diff[0] ? {1'b0, stage1_reg.diff[0]} : (~{1'b0, stage1_reg.diff[0]} + 1'b1);
+    abs_diff_01 = stage1_reg.cout_diff[1] ? {1'b0, stage1_reg.diff[1]} : (~{1'b0, stage1_reg.diff[1]} + 1'b1);
+    abs_diff_02 = stage1_reg.cout_diff[2] ? {1'b0, stage1_reg.diff[2]} : (~{1'b0, stage1_reg.diff[2]} + 1'b1);
+    abs_diff_10 = stage1_reg.cout_diff[3] ? {1'b0, stage1_reg.diff[3]} : (~{1'b0, stage1_reg.diff[3]} + 1'b1);
+    abs_diff_12 = stage1_reg.cout_diff[4] ? {1'b0, stage1_reg.diff[5]} : (~{1'b0, stage1_reg.diff[5]} + 1'b1);
+    abs_diff_20 = stage1_reg.cout_diff[5] ? {1'b0, stage1_reg.diff[6]} : (~{1'b0, stage1_reg.diff[6]} + 1'b1);
+    abs_diff_21 = stage1_reg.cout_diff[6] ? {1'b0, stage1_reg.diff[7]} : (~{1'b0, stage1_reg.diff[7]} + 1'b1);
+    abs_diff_22 = stage1_reg.cout_diff[7] ? {1'b0, stage1_reg.diff[8]} : (~{1'b0, stage1_reg.diff[8]} + 1'b1);
   end
   //========================STAGE 2:LUT=======================================================
   always_comb begin : stage2_comb
@@ -130,7 +129,6 @@ module bilateral_filter #(
     //-------------PREVIOUS_PIXEL_COMPUTE------------------------
     stage2_next.pre_px  = stage1_reg.pre_px;
   end
-  
   always_ff @(posedge i_clk) begin : stage2_register
     if(~ni_rst) begin
       stage2_reg <= '0;
@@ -167,14 +165,14 @@ module bilateral_filter #(
   .WIDTH_PX (WIDTH_PIXEL),
   .WIDTH_WC (9),
   .GUARD_BIT(4),
-  .WIDTH_MUL(17)
+  .WIDTH_MUL(18)
   ) mac_bilateral (
-    .i_clk      (i_clk),
-    .ni_rst     (ni_rst),
-    .i_mac_en   (valid_shift_reg[1]),
-    .i_px       (stage2_reg.pre_px),
-    .i_wc       (mac_wc_array),
-    .o_mac_valid(mac_valid_o),
+    .i_clk        (i_clk),
+    .ni_rst       (ni_rst),
+    .i_mac_en     (valid_shift_reg[1]),
+    .i_px         (stage2_reg.pre_px),
+    .i_wc         (mac_wc_array),
+    .o_mac_valid  (mac_valid_o),
     .o_mac_num_out(mac_num_out),
     .o_mac_den_out(mac_den_out)
   );
@@ -187,9 +185,9 @@ module bilateral_filter #(
   ) div_out (
     .i_clk   (i_clk),
     .ni_rst  (ni_rst),
-    .i_ready (valid_shift_reg[2]),
+    .i_ready (i_ready),
     .i_valid (mac_valid_o),
-    .i_rem   ({1'b0, mac_num_out[20:8]}), 
+    .i_rem   (mac_num_out[21:8]), 
     .i_quoti (mac_num_out[7:0]), 
     .i_den   (mac_den_out), 
     .o_valid (filter_valid_o), 
