@@ -1,13 +1,14 @@
+import package_param::*;
 module tree_comp_8bit (
-  input  logic [7:0] x_i,
-  input  logic [7:0] y_i,
-  output logic ge_o
+  input  logic [WIDTH_PIXEL-1:0] x_i,
+  input  logic [WIDTH_PIXEL-1:0] y_i,
+  output logic                   ge_o
 );
 //===========DECLARATION================================================
-  logic [7:0] g1, e1;
-  logic [3:0] g2, e2;
-  logic [1:0] g3, e3;
-  logic       g4, e4;
+  logic [WIDTH_PIXEL-1:0] g1, e1;
+  logic [3:0]             g2, e2;
+  logic [1:0]             g3, e3;
+  logic                   g4, e4;
 //===========LOGIC_STAGE1================================================
   assign g1    = x_i & ~y_i;        // check if y_i < x_i or not
   assign e1    = ~(x_i ^ y_i);      // Cờ Equal (x_i == y_i)

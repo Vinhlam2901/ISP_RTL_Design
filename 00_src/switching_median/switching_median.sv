@@ -4,14 +4,10 @@
 // File            : switching_median.sv
 // Author          : Chau Tran Vinh Lam - vinhlamchautran572@gmail.com
 // Create date     : 24/08/2026
-// Updated date    : 10/09/2026
+// Updated date    : 25/10/2026
 //=============================================================================================================
 import package_param::*;
-module switching_median #(
-  parameter WIDTH_PIXEL    = 8,      // 8bit for 1 pixel
-  parameter WIDTH          = 256,
-  parameter LENGTH         = 256
-)(
+module switching_median (
   input  logic                   i_clk,
   input  logic                   ni_rst,
   input  logic                   i_ready,
@@ -22,28 +18,24 @@ module switching_median #(
 );
   //==============DECLARATION=======================================================================================
   logic                        compare_start;
-  logic [WIDTH_PIXEL-1:0]      median_o;
+  logic      [WIDTH_PIXEL-1:0] median_o;
   //----------------window_pixel--------------------------
-  logic [WIDTH_PIXEL-1:0]      window_00, window_01, window_02; // row 0
-  logic [WIDTH_PIXEL-1:0]      window_10, window_11, window_12; // row 1
-  logic [WIDTH_PIXEL-1:0]      window_20, window_21, window_22; // row 2
+  logic      [WIDTH_PIXEL-1:0] window_00, window_01, window_02; // row 0
+  logic      [WIDTH_PIXEL-1:0] window_10, window_11, window_12; // row 1
+  logic      [WIDTH_PIXEL-1:0] window_20, window_21, window_22; // row 2
   logic [8:0][WIDTH_PIXEL-1:0] compare_pixels;
   //----------------px_deviation--------------------------
-  logic                   ge_vh, ge_lr, ge_dev, ge_threshold;
-  logic                   is_noise;
-  logic [WIDTH_PIXEL-1:0] vert_dev, hor_dev, crossleft_dev, crossright_dev;
-  logic [WIDTH_PIXEL-1:0] min_vh, min_lr, min_dev;
+  logic                        ge_vh, ge_lr, ge_dev, ge_threshold;
+  logic                        is_noise;
+  logic      [WIDTH_PIXEL-1:0] vert_dev, hor_dev, crossleft_dev, crossright_dev;
+  logic      [WIDTH_PIXEL-1:0] min_vh, min_lr, min_dev;
   //----------------pipeline--------------------------------
-  logic            [2:0]  valid_shift_reg; 
-  STAGE1_DEV_STAGE        stage1_reg, stage1_next;
-  STAGE2_MIN_STAGE        stage2_reg, stage2_next;
-  STAGE3_DEC_STAGE        stage3_reg, stage3_next;
+  logic            [2:0]       valid_shift_reg; 
+  STAGE1_DEV_STAGE             stage1_reg, stage1_next;
+  STAGE2_MIN_STAGE             stage2_reg, stage2_next;
+  STAGE3_DEC_STAGE             stage3_reg, stage3_next;
   //==============INSTANTIATION WINDOW GENERATOR====================================================================
-  window_generator_3x3 #(
-    .WIDTH_PIXEL(WIDTH_PIXEL),
-    .WIDTH(WIDTH),
-    .LENGTH(LENGTH)
-  ) image_coordinated (
+  window_generator_3x3 image_coordinated (
     .i_clk          (i_clk),
     .ni_rst         (ni_rst),
     .i_ready        (i_ready),
@@ -60,9 +52,7 @@ module switching_median #(
     compare_pixels[6] = window_20; compare_pixels[7] = window_21; compare_pixels[8] = window_22;
   end
 //==============MEDIAN_CALCULATED==================================================================
-  median_cal #(
-    .WIDTH_PIXEL(WIDTH_PIXEL)
-  ) median_finding (
+  median_cal median_finding (
     .i_clk         (i_clk),
     .ni_rst        (ni_rst),
     .i_ready       (i_ready),
@@ -81,27 +71,19 @@ module switching_median #(
   end
   assign o_valid = valid_shift_reg[2];
   //------------DEVIATION_DETECTION-------------------------------------------
-  median_detected #(
-    .WIDTH_PIXEL(WIDTH_PIXEL)
-  ) vertical_deviation (
+  median_detected vertical_deviation (
     .compare_pixels  ({window_21, window_11, window_01}),
     .px_deviation_abs(vert_dev)
   );
-  median_detected #(
-    .WIDTH_PIXEL(WIDTH_PIXEL)
-  ) horizon_deviation (
+  median_detected horizon_deviation (
     .compare_pixels  ({window_12, window_11, window_10}),
     .px_deviation_abs(hor_dev)
 );
-  median_detected #(
-    .WIDTH_PIXEL(WIDTH_PIXEL)
-  ) crossleft_deviation (
+  median_detected crossleft_deviation (
     .compare_pixels  ({window_22, window_11, window_00}),
     .px_deviation_abs(crossleft_dev)
   );
-  median_detected #(
-    .WIDTH_PIXEL(WIDTH_PIXEL)
-  ) crossright_deviation (
+  median_detected crossright_deviation (
     .compare_pixels  ({window_20, window_11, window_02}),
     .px_deviation_abs(crossright_dev)
   );

@@ -3,11 +3,10 @@
 // File            : compare_row.sv
 // Author          : Chau Tran Vinh Lam - vinhlamchautran572@gmail.com
 // Create date     : 24/08/2026
-// Updated date    : 24/08/2026
+// Updated date    : 25/10/2026
 //=============================================================================================================
-module compare_row #(
-  parameter WIDTH_PIXEL    = 8     // 8bit for 1 pixel
-)(
+import package_param::*;
+module compare_row (
 	input  logic [8:0][WIDTH_PIXEL-1:0] i_compare_pixels,
 	output logic [2:0][WIDTH_PIXEL-1:0] o_min, o_med, o_max
 );

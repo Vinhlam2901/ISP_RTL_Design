@@ -53,7 +53,7 @@ def hex_to_image(hex_path, image_path, width=256, height=256):
 # Hướng dẫn sử dụng:
 if __name__ == "__main__":
     # 1. Chạy hàm này TRƯỚC khi mô phỏng (chuẩn bị đầu vào)
-    image_to_hex('result_filtered.png', 'image_in.hex')
+    image_to_hex('mixed_noise_image.png', 'image_in.hex')
     
     # 2. Chạy hàm này SAU khi mô phỏng xong (xem kết quả)
     hex_to_image('image_out.hex', 'result_filtered.png')

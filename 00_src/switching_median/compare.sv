@@ -4,15 +4,16 @@
 // File            : compare.sv
 // Author          : Chau Tran Vinh Lam - vinhlamchautran572@gmail.com
 // Create date     : 10/08/2026
-// Updated date    : 10/08/2026
+// Updated date    : 25/10/2026
 //============================================================================================================
+import package_param::*;
 module compare (
-  input  logic [7:0] a_i,
-  input  logic [7:0] b_i,
-  input  logic [7:0] c_i,
-  output logic [7:0] min_o,
-  output logic [7:0] med_o,
-  output logic [7:0] max_o
+  input  logic [WIDTH_PIXEL-1:0] a_i,
+  input  logic [WIDTH_PIXEL-1:0] b_i,
+  input  logic [WIDTH_PIXEL-1:0] c_i,
+  output logic [WIDTH_PIXEL-1:0] min_o,
+  output logic [WIDTH_PIXEL-1:0] med_o,
+  output logic [WIDTH_PIXEL-1:0] max_o
 );
 //==========================DECLARATION=======================================
   logic a_ge_b, b_ge_c, a_ge_c;

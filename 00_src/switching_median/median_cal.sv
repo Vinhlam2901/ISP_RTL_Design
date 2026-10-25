@@ -4,12 +4,10 @@
 // File            : median_cal.sv
 // Author          : Chau Tran Vinh Lam - vinhlamchautran572@gmail.com
 // Create date     : 24/08/2026
-// Updated date    : 28/08/2026
+// Updated date    : 25/10/2026
 //=============================================================================================================
 import package_param::*;
-module median_cal #(
-  parameter WIDTH_PIXEL = 8
-)(
+module median_cal (
   input  logic                        i_clk,
   input  logic                        ni_rst,
   input  logic                        i_ready,
@@ -42,9 +40,7 @@ module median_cal #(
   assign o_valid = valid_shift_reg[2];
 //==========================COMPARING=================================================
 //------------------STAGE_1_COMPARE-----------------------------------------------------
-  compare_row #(
-    .WIDTH_PIXEL(WIDTH_PIXEL)
-  ) compare_stage1 (
+  compare_row compare_stage1 (
     .i_compare_pixels(o_compare_pixels),
     .o_min(min_stage1_o),
     .o_med(med_stage1_o),
@@ -86,9 +82,7 @@ module median_cal #(
     compare_stage2[8] = stage1_reg.px[8];
   end
   //------------------STAGE_2_COMPARE-----------------------------------------------------
-  compare_row #(
-    .WIDTH_PIXEL(WIDTH_PIXEL)
-  ) compare_stage_2 (
+  compare_row compare_stage_2 (
     .i_compare_pixels(compare_stage2),
     .o_min(min_stage2_o),             // MAX of MIN (max_stage2_o[0]) - index 0 has MIN
     .o_med(med_stage2_o),             // MED of MED (med_stage2_o[1]) - index 1 has MED

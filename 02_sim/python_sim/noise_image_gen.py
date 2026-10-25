@@ -17,7 +17,7 @@ else:
     
     # 2. Tạo nhiễu phân bố chuẩn (Gaussian Noise)
     mean = 0       
-    sigma = 15
+    sigma = 10
     gauss_noise = np.random.normal(mean, sigma, (H, W))
     
     # Tiêm nhiễu Gaussian vào ảnh ĐÃ RESIZE
@@ -41,7 +41,7 @@ else:
     img_noisy[pepper_y, pepper_x] = 0
 
     # 4. Xuất ra file Hex để nạp vào Verilog Testbench
-    hex_filename = "input_mixed_noise.hex"
+    hex_filename = "mixed_noise_image.hex"
     with open(hex_filename, "w") as f:
         for val in img_noisy.flatten():
             f.write(f"{val:02X}\n")

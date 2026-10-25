@@ -1,36 +1,30 @@
-module line_buffer #(
-  parameter IMAGE_WIDTH = 256
-)(
-  input  logic       i_clk,
-  input  logic       ni_rst,
-  input  logic       i_ready,
-  input  logic       i_left_align,
-  input  logic       i_right_align,
-  input  logic       i_top_align,
-  input  logic       i_bot_align,
-  input  logic       i_rd_en1,
-  input  logic       i_rd_en2,
-  input  logic [7:0] i_pix,
-  output logic       o_cross_err,
-  output logic [7:0] window_00, window_01, window_02,   // row 0
-  output logic [7:0] window_10, window_11, window_12,   // row 1
-  output logic [7:0] window_20, window_21, window_22    // row 2
+import package_param::*;
+module line_buffer (
+  input  logic                   i_clk,
+  input  logic                   ni_rst,
+  input  logic                   i_ready,
+  input  logic                   i_left_align,
+  input  logic                   i_right_align,
+  input  logic                   i_top_align,
+  input  logic                   i_bot_align,
+  input  logic                   i_rd_en1,
+  input  logic                   i_rd_en2,
+  input  logic [WIDTH_PIXEL-1:0] i_pix,
+  output logic                   o_cross_err,
+  output logic [WIDTH_PIXEL-1:0] window_00, window_01, window_02,   // row 0
+  output logic [WIDTH_PIXEL-1:0] window_10, window_11, window_12,   // row 1
+  output logic [WIDTH_PIXEL-1:0] window_20, window_21, window_22    // row 2
 );
-//========================== ĐỊNH NGHĨA THAM SỐ ĐỘNG ==========================
-  localparam ADDR_W = $clog2(IMAGE_WIDTH);
 //========================== INSTANTIATION ====================================
-  logic              rd_en1, rd_en2;
-  logic              wr_en2;
-  logic [7:0]        pixel_out1, pixel_out2;
-  logic [ADDR_W-1:0] cnt_cell; 
-  logic [7:0]        o_p00, o_p01, o_p02;  // row 0
-  logic [7:0]        o_p10, o_p11, o_p12;  // row 1
-  logic [7:0]        o_p20, o_p21, o_p22;  // row 2
+  logic                   rd_en1, rd_en2;
+  logic                   wr_en2;
+  logic [WIDTH_PIXEL-1:0] pixel_out1, pixel_out2;
+  logic [ADDR_WIDTH-1:0]  cnt_cell; 
+  logic [WIDTH_PIXEL-1:0] o_p00, o_p01, o_p02;  // row 0
+  logic [WIDTH_PIXEL-1:0] o_p10, o_p11, o_p12;  // row 1
+  logic [WIDTH_PIXEL-1:0] o_p20, o_p21, o_p22;  // row 2
 //========================== FIFO BỘ ĐỆM DÒNG =================================
-  fifo #(
-    .DATA_WIDTH(8),
-    .ADDR_WIDTH(ADDR_W)
-  ) line_buffer1 (
+  fifo line_buffer1 (
     .i_clk  (i_clk),
     .ni_rst (ni_rst),
     .i_wren (i_ready),
@@ -38,10 +32,7 @@ module line_buffer #(
     .wr_data(i_pix),
     .rd_data(pixel_out1)
   );
-  fifo #(
-    .DATA_WIDTH(8),
-    .ADDR_WIDTH(ADDR_W)
-  ) line_buffer2 (
+  fifo line_buffer2 (
     .i_clk  (i_clk),
     .ni_rst (ni_rst),
     .i_wren (wr_en2),           // the lb1 can be read in T period but actually the data pushed in T+1 period so we need delay 1 clk 
@@ -98,7 +89,7 @@ module line_buffer #(
     if (~ni_rst) begin
       cnt_cell <= '0;
     end else if (i_ready) begin
-      if (cnt_cell == IMAGE_WIDTH - 1) begin
+      if (cnt_cell == WIDTH - 1) begin
         cnt_cell <= '0;
       end else begin
         cnt_cell <= cnt_cell + 1'b1;

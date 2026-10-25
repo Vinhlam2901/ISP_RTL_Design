@@ -4,40 +4,35 @@
 // File            : div_pipeline.sv
 // Author          : Chau Tran Vinh Lam - vinhlamchautran572@gmail.com
 // Create date     : 15/09/2026
-// Updated date    : 13/10/2026
+// Updated date    : 25/10/2026
 //=============================================================================================================
 import package_param::*;
-module div_pipeline #(
-  parameter WIDTH_PIXEL = 8,      
-  parameter WIDTH_DEN   = 13,
-  parameter WIDTH_OUT   = 8,
-  parameter WIDTH_REM   = 14
-)(
-  input  logic                 i_clk,
-  input  logic                 ni_rst,
-  input  logic                 i_ready,
-  input  logic                 i_valid,
-  input  logic [WIDTH_REM-1:0] i_rem,     
-  input  logic [WIDTH_OUT-1:0] i_quoti,   
-  input  logic [WIDTH_DEN-1:0] i_den,     
-  output logic                 o_valid,
-  output logic [WIDTH_REM-1:0] o_remain,  
-  output logic [WIDTH_OUT-1:0] o_quoti    
+module div_pipeline (
+  input  logic                   i_clk,
+  input  logic                   ni_rst,
+  input  logic                   i_ready,
+  input  logic                   i_valid,
+  input  logic [WIDTH_REM-1:0]   i_rem,     
+  input  logic [WIDTH_PIXEL-1:0] i_quoti,   
+  input  logic [WIDTH_DEN-1:0]   i_den,     
+  output logic                   o_valid,
+  output logic [WIDTH_REM-1:0]   o_remain,  
+  output logic [WIDTH_PIXEL-1:0] o_quoti    
 );
 //==============DECLARATION==============================================
-  logic                 valid_reg     [0:7];
-  logic [WIDTH_REM-1:0] div_rem_out   [0:7];
-  logic [WIDTH_OUT-1:0] div_quoti_out [0:7];
-  logic [WIDTH_REM-1:0] rem_reg       [0:7];
-  logic [WIDTH_OUT-1:0] quoti_reg     [0:7];
-  logic [WIDTH_DEN-1:0] den_reg       [0:7];
+  logic                   valid_reg     [0:7];
+  logic [WIDTH_REM-1:0]   div_rem_out   [0:7];
+  logic [WIDTH_PIXEL-1:0] div_quoti_out [0:7];
+  logic [WIDTH_REM-1:0]   rem_reg       [0:7];
+  logic [WIDTH_PIXEL-1:0] quoti_reg     [0:7];
+  logic [WIDTH_DEN-1:0]   den_reg       [0:7];
 //==============8-STAGE PIPELINE GENERATION==============================
   genvar i;
   generate
     for (i = 0; i < 8; i++) begin : gen_div_stages
-      logic [WIDTH_REM-1:0] current_rem_in;
-      logic [WIDTH_OUT-1:0] current_quoti_in;
-      logic [WIDTH_DEN-1:0] current_den_in;
+      logic [WIDTH_REM-1:0]   current_rem_in;
+      logic [WIDTH_PIXEL-1:0] current_quoti_in;
+      logic [WIDTH_DEN-1:0]   current_den_in;
       // Sử dụng Generate If để tạo 2 kiến trúc phần cứng riêng biệt
       if (i == 0) begin : gen_stage_0
         // Tầng 0: Lấy trực tiếp dữ liệu ngõ vào, hoàn toàn không dính đến [i-1]
@@ -46,7 +41,7 @@ module div_pipeline #(
           current_quoti_in = i_quoti;
           current_den_in   = i_den;
         end
-        always_ff @(posedge i_clk) begin
+        always_ff @(posedge i_clk or negedge ni_rst) begin
           if (~ni_rst) begin
             rem_reg[i]   <= '0;
             quoti_reg[i] <= '0;
@@ -81,11 +76,7 @@ module div_pipeline #(
         end
       end
       // Khối toán học dùng chung cho mọi tầng
-      non_res_div #(
-        .WIDTH_DEN(WIDTH_DEN), 
-        .WIDTH_OUT(WIDTH_PIXEL), 
-        .WIDTH_REM(WIDTH_REM)
-      ) div_inst (
+      non_res_div div_inst (
         .i_rem    (current_rem_in),
         .i_quoti  (current_quoti_in),
         .i_den    (current_den_in),

@@ -7,12 +7,7 @@
 // Updated date    : 10/09/2026
 //=============================================================================================================
 import package_param::*;
-
-module window_generator_3x3 #(
-  parameter WIDTH_PIXEL    = 8,
-  parameter WIDTH          = 256,
-  parameter LENGTH         = 256
-)(
+module window_generator_3x3 (
   input  logic                   i_clk,
   input  logic                   ni_rst,
   input  logic                   i_ready,
@@ -23,13 +18,13 @@ module window_generator_3x3 #(
   output logic [WIDTH_PIXEL-1:0] window_20, window_21, window_22
 );
 //==============DECLARATION====================================================
-  logic                   lb1_full, lb2_full;
-  logic                   rd_en1, rd_en2;
-  logic                   i_valid_window;
-  logic                   i_left_align, i_right_align, i_top_align, i_bot_align;
-  logic                   window_err;
-  logic [WIDTH_PIXEL:0]   x_cnt, y_cnt, fill_cnt;   
-
+  localparam CNT_WIDTH = $clog2(WIDTH > LENGTH ? WIDTH + 2 : LENGTH + 2);
+  logic                 lb1_full, lb2_full;
+  logic                 rd_en1, rd_en2;
+  logic                 i_valid_window;
+  logic                 i_left_align, i_right_align, i_top_align, i_bot_align;
+  logic                 window_err;
+  logic [CNT_WIDTH-1:0] x_cnt, y_cnt, fill_cnt;   
 //==============PIXEL COORDINATE LOGIC=========================================
   always_ff @(posedge i_clk or negedge ni_rst) begin: pixel_coordinate
     if (~ni_rst) begin
@@ -73,9 +68,7 @@ module window_generator_3x3 #(
   assign rd_en1   = i_ready & lb1_full;
   assign rd_en2   = i_ready & lb2_full;
 //==============LINE_BUFFER_INSTANTIATION======================================
-	line_buffer #(
-    .IMAGE_WIDTH(WIDTH)
-  )image_storage (
+	line_buffer image_storage (
     .i_clk        (i_clk),
 		.ni_rst       (ni_rst),
 		.i_ready      (i_ready),
